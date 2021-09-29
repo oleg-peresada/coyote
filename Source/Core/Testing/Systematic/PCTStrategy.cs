@@ -108,9 +108,11 @@ namespace Microsoft.Coyote.Testing.Systematic
             this.SetNewOperationPriorities(enabledOps, current);
             this.DeprioritizeEnabledOperationWithHighestPriority(enabledOps, current, isYielding);
             this.DebugPrintOperationPriorityList();
+            DebugPrintEnabledOps(enabledOps);
 
             AsyncOperation highestEnabledOperation = this.GetEnabledOperationWithHighestPriority(enabledOps);
             next = enabledOps.First(op => op.Equals(highestEnabledOperation));
+            Console.WriteLine("<PCTLog> next operation scheduled is: '{0}'.", next);
             this.StepCount++;
             return true;
         }
@@ -128,10 +130,22 @@ namespace Microsoft.Coyote.Testing.Systematic
             // Randomize the priority of all new operations.
             foreach (var op in ops.Where(op => !this.PrioritizedOperations.Contains(op)))
             {
-                // Randomly choose a priority for this operation.
-                int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
+                int index = 0;
+                // TODO: refactor, remove above line somehow
+                // TODO: think of cases with mix of tasks and actors, where op would be TaskOperation only sometimes
+                if (op.Spawner == null)
+                {
+                    // Randomly choose a priority for this operation.
+                    // TODO: Experiment with +1, -1, +rand(1,-1), random between children
+                    index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
+                }
+                else
+                {
+                    index = this.PrioritizedOperations.IndexOf(op.Spawner) + 1;
+                }
+
                 this.PrioritizedOperations.Insert(index, op);
-                Debug.WriteLine("<PCTLog> chose priority '{0}' for new operation '{1}'.", index, op.Name);
+                Console.WriteLine("<PCTLog> chose priority '{0}' for new operation '{1}'.", index, op.Name);
             }
         }
 
@@ -257,6 +271,25 @@ namespace Microsoft.Coyote.Testing.Systematic
             this.StepCount = 0;
             this.PrioritizedOperations.Clear();
             this.PriorityChangePoints.Clear();
+        }
+
+        private static void DebugPrintEnabledOps(List<AsyncOperation> ops)
+        {
+            if (Debug.IsEnabled)
+            {
+                Debug.Write("<PCTLog> enabled operation: ");
+                for (int idx = 0; idx < ops.Count; idx++)
+                {
+                    if (idx < ops.Count - 1)
+                    {
+                        Debug.Write("'{0}', ", ops[idx].Name);
+                    }
+                    else
+                    {
+                        Debug.WriteLine("'{0}'.", ops[idx].Name);
+                    }
+                }
+            }
         }
 
         /// <summary>

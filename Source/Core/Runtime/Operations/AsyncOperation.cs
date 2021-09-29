@@ -10,6 +10,9 @@ namespace Microsoft.Coyote.Runtime
     /// </summary>
     internal abstract class AsyncOperation : IEquatable<AsyncOperation>
     {
+        // TODO: make it internal or private
+        public AsyncOperation Spawner = null;
+
         /// <summary>
         /// The unique id of the operation.
         /// </summary>

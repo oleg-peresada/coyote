@@ -400,6 +400,8 @@ namespace Microsoft.Coyote.Runtime
             Console.WriteLine($"   RT: Schedule: thread-id: {Thread.CurrentThread.ManagedThreadId}; task-id: {Task.CurrentId}");
 
             TaskOperation op = this.CreateTaskOperation();
+            op.Spawner = ExecutingOperation.Value;
+            // TODO: assert op.Spawner!= null
             var thread = new Thread(() =>
             {
                 try
