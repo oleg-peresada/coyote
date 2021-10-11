@@ -15,6 +15,16 @@ namespace Microsoft.Coyote.SystematicTesting
     [DataContract]
     public class TestReport
     {
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        [DataMember]
+        public int NumSpawnTasks;
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        [DataMember]
+        public int NumContinuationTasks;
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+
         /// <summary>
         /// Configuration of the program-under-test.
         /// </summary>
@@ -140,7 +150,7 @@ namespace Microsoft.Coyote.SystematicTesting
         /// Creates a test report using the specified statistics.
         /// </summary>
         internal static TestReport CreateTestReportFromStats(Configuration configuration, bool isBugFound, string bugReport,
-            int scheduledSteps, bool isMaxScheduledStepsBoundReached, bool isScheduleFair, Exception thrownException)
+            int scheduledSteps, bool isMaxScheduledStepsBoundReached, bool isScheduleFair, Exception thrownException, int numSpawnTasks, int numContinuationTasks)
         {
             TestReport report = new TestReport(configuration);
 
@@ -187,6 +197,9 @@ namespace Microsoft.Coyote.SystematicTesting
                 }
             }
 
+            report.NumContinuationTasks = numContinuationTasks;
+            report.NumSpawnTasks = numSpawnTasks;
+            // F_TODO: find all references of this function and change everywhere the arguments
             return report;
         }
 
@@ -237,6 +250,8 @@ namespace Microsoft.Coyote.SystematicTesting
                 }
 
                 this.InternalErrors.UnionWith(testReport.InternalErrors);
+                this.NumSpawnTasks += testReport.NumSpawnTasks;
+                this.NumContinuationTasks += testReport.NumContinuationTasks;
             }
 
             return true;
@@ -333,6 +348,24 @@ namespace Microsoft.Coyote.SystematicTesting
                         (double)this.MaxUnfairStepsHitInUnfairTests / this.NumOfExploredUnfairSchedules * 100);
                 }
             }
+
+            // if (this.NumContinuationTasks > 0)
+            // {
+            report.AppendLine();
+            report.AppendFormat(
+            "{0} Number of continuation tasks is.",
+            prefix.Equals("...") ? "....." : prefix,
+            this.NumContinuationTasks);
+            // }
+
+            // if (this.NumSpawnTasks > 0)
+            // {
+            report.AppendLine();
+            report.AppendFormat(
+            "{0} Number of new spawn tasks is.",
+            prefix.Equals("...") ? "....." : prefix,
+            this.NumSpawnTasks);
+            // }
 
             return report.ToString();
         }

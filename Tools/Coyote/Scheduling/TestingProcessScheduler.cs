@@ -405,6 +405,8 @@ namespace Microsoft.Coyote.SystematicTesting
 
             // Get and merge the test report.
             TestReport testReport = testingProcess.GetTestReport();
+            Console.WriteLine($"        <MY_PCT_LOG> numSpawnTasks: {testReport.NumSpawnTasks}");
+            Console.WriteLine($"        <MY_PCT_LOG> numContinuationTasks: {testReport.NumContinuationTasks}");
             if (testReport != null)
             {
                 this.MergeTestReport(testReport, 0);

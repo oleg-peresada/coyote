@@ -181,6 +181,10 @@ namespace Microsoft.Coyote.Runtime
         internal SchedulingPolicy SchedulingPolicy => this.Scheduler?.SchedulingPolicy ??
             SchedulingPolicy.None;
 
+        public int NumSpawnTasks;
+
+        public int NumContinuationTasks;
+
         /// <summary>
         /// True if a bug was found, else false.
         /// </summary>
@@ -402,6 +406,7 @@ namespace Microsoft.Coyote.Runtime
             TaskOperation op = this.CreateTaskOperation();
             op.Spawner = ExecutingOperation.Value;
             // TODO: assert op.Spawner!= null
+            this.NumContinuationTasks++;
             var thread = new Thread(() =>
             {
                 try
@@ -464,6 +469,7 @@ namespace Microsoft.Coyote.Runtime
             Console.WriteLine($"   RT: Schedule: thread-id: {Thread.CurrentThread.ManagedThreadId}; task-id: {Task.CurrentId}; task: {task.Id}");
 
             TaskOperation op = task.AsyncState as TaskOperation ?? this.CreateTaskOperation();
+            this.NumSpawnTasks++;
             var thread = new Thread(() =>
             {
                 try
@@ -1701,7 +1707,7 @@ namespace Microsoft.Coyote.Runtime
         /// Returns scheduling statistics and results.
         /// </summary>
         internal void GetSchedulingStatisticsAndResults(out bool isBugFound, out string bugReport, out int steps,
-            out bool isMaxStepsReached, out bool isScheduleFair, out Exception unhandledException)
+            out bool isMaxStepsReached, out bool isScheduleFair, out Exception unhandledException, out int numSpawnTasks, out int numContinuationTasks)
         {
             lock (this.SyncObject)
             {
@@ -1711,6 +1717,9 @@ namespace Microsoft.Coyote.Runtime
                 isBugFound = this.IsBugFound;
                 bugReport = this.BugReport;
                 unhandledException = this.UnhandledException;
+                numSpawnTasks = this.NumSpawnTasks;
+                // F_TODO: find all references of this function and change everywhere the arguments
+                numContinuationTasks = this.NumContinuationTasks;
             }
         }
 

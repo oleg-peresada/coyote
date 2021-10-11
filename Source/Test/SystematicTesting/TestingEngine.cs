@@ -795,10 +795,10 @@ namespace Microsoft.Coyote.SystematicTesting
         private void GatherTestingStatistics(CoyoteRuntime runtime)
         {
             runtime.GetSchedulingStatisticsAndResults(out bool isBugFound, out string bugReport, out int steps,
-                out bool isMaxStepsReached, out bool isScheduleFair, out Exception unhandledException);
+                out bool isMaxStepsReached, out bool isScheduleFair, out Exception unhandledException, out int numSpawnTasks, out int numContinuationTasks);
 
             TestReport report = TestReport.CreateTestReportFromStats(this.Configuration, isBugFound, bugReport,
-                steps, isMaxStepsReached, isScheduleFair, unhandledException);
+                steps, isMaxStepsReached, isScheduleFair, unhandledException, numSpawnTasks, numContinuationTasks);
             if (this.Configuration.ReportActivityCoverage)
             {
                 report.CoverageInfo.CoverageGraph = this.Graph;
