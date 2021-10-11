@@ -15,15 +15,17 @@ namespace Microsoft.Coyote.SystematicTesting
     [DataContract]
     public class TestReport
     {
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        /// <summary>
+        /// Number of Spawn Tasks observed.
+        /// </summary>
         [DataMember]
-        public int NumSpawnTasks;
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+        public int NumSpawnTasks { get; set; }
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        /// <summary>
+        /// Number of Continuation Tasks observed.
+        /// </summary>
         [DataMember]
-        public int NumContinuationTasks;
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+        public int NumContinuationTasks { get; set; }
 
         /// <summary>
         /// Configuration of the program-under-test.
