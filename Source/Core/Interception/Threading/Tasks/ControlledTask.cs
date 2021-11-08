@@ -39,6 +39,7 @@ namespace Microsoft.Coyote.Interception
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Task Run(Action action, CancellationToken cancellationToken)
         {
+            // Console.WriteLine($"--------------------ACTION: method: {action.Method}, tostring: {action.ToString()}");
             var runtime = CoyoteRuntime.Current;
             if (runtime.SchedulingPolicy is SchedulingPolicy.None)
             {
@@ -65,6 +66,7 @@ namespace Microsoft.Coyote.Interception
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Task<TResult> Run<TResult>(Func<TResult> function, CancellationToken cancellationToken)
         {
+            // Console.WriteLine($"--------------------FUNCTION: method: {function.Method}, tostring: {function.ToString()}");
             var runtime = CoyoteRuntime.Current;
             if (runtime.SchedulingPolicy is SchedulingPolicy.None)
             {
@@ -92,6 +94,7 @@ namespace Microsoft.Coyote.Interception
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Task Run(Func<Task> function, CancellationToken cancellationToken)
         {
+            // Console.WriteLine($"--------------------FUNCTION: method: {function.Method}, tostring: {function.ToString()}");
             var runtime = CoyoteRuntime.Current;
             if (runtime.SchedulingPolicy is SchedulingPolicy.None)
             {
@@ -119,6 +122,7 @@ namespace Microsoft.Coyote.Interception
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Task<TResult> Run<TResult>(Func<Task<TResult>> function, CancellationToken cancellationToken)
         {
+            // Console.WriteLine($"--------------------FUNCTION: method: {function.Method}, tostring: {function.ToString()}");
             var runtime = CoyoteRuntime.Current;
             if (runtime.SchedulingPolicy is SchedulingPolicy.None)
             {

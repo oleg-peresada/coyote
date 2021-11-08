@@ -293,6 +293,7 @@ namespace Microsoft.Coyote.SystematicTesting
         /// </summary>
         public void Run()
         {
+            // Debugger.Launch();
             bool isReplaying = this.Scheduler.IsReplayingSchedule;
 
             try
@@ -382,6 +383,7 @@ namespace Microsoft.Coyote.SystematicTesting
         /// </summary>
         private Task CreateTestingTask()
         {
+            // Debugger.Launch();
             string options = string.Empty;
             if (this.Configuration.SchedulingStrategy is "random" ||
                 this.Configuration.SchedulingStrategy is "pct" ||

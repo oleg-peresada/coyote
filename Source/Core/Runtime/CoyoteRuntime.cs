@@ -407,6 +407,16 @@ namespace Microsoft.Coyote.Runtime
             op.Spawner = ExecutingOperation.Value;
             // TODO: assert op.Spawner!= null
             this.NumContinuationTasks++;
+            var contTrace = Environment.GetEnvironmentVariable("CONT_TRACE");
+            if (contTrace == "1")
+            {
+                // Console.WriteLine($"--------------------SCHEDULE-CALLBACK: Method: {callback.Method}, MethodInfo: {callback.GetMethodInfo()}");
+                StackTrace stackTrace = new StackTrace();
+                Console.WriteLine($"--------------------<CONTINUATION> stackTrace: '{stackTrace}'.");
+                // this.Logger.WriteLine($"<SPAWN> ScheduleTask: '{stackTrace}'.");
+                Console.WriteLine($"--------------------<CONTINUATION> ID: {op.Id}, Name: {op.Name}, Spawner: {op.Spawner}");
+            }
+
             var thread = new Thread(() =>
             {
                 try
@@ -470,6 +480,14 @@ namespace Microsoft.Coyote.Runtime
 
             TaskOperation op = task.AsyncState as TaskOperation ?? this.CreateTaskOperation();
             this.NumSpawnTasks++;
+            var spawnTrace = Environment.GetEnvironmentVariable("SPAWN_TRACE");
+            if (spawnTrace == "1")
+            {
+                StackTrace stackTrace = new StackTrace();
+                Console.WriteLine($"--------------------<SPAWN> stackTrace: '{stackTrace}'.");
+                Console.WriteLine($"--------------------<SPAWN> ID: {op.Id}, Name: {op.Name}, Spawner: {op.Spawner}");
+            }
+
             var thread = new Thread(() =>
             {
                 try
