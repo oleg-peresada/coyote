@@ -404,7 +404,10 @@ namespace Microsoft.Coyote.Runtime
             Console.WriteLine($"   RT: Schedule: thread-id: {Thread.CurrentThread.ManagedThreadId}; task-id: {Task.CurrentId}");
 
             TaskOperation op = this.CreateTaskOperation();
-            op.Spawner = ExecutingOperation.Value;
+            AsyncOperation spawner = ExecutingOperation.Value;
+            List<AsyncOperation> spawneeList = spawner.Spawnees;
+            op.Spawner = spawner;
+            spawneeList.Add(op);
             // TODO: assert op.Spawner!= null
             this.NumContinuationTasks++;
             var contTrace = Environment.GetEnvironmentVariable("CONT_TRACE");

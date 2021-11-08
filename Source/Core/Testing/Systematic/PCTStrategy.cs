@@ -180,6 +180,12 @@ namespace Microsoft.Coyote.Testing.Systematic
                 // Deprioritize the operation by putting it in the end of the list.
                 this.PrioritizedOperations.Remove(deprioritizedOperation);
                 this.PrioritizedOperations.Add(deprioritizedOperation);
+                // TODO: for all children of deprioritizedOperation this.PrioritizedOperations.Remove(children); this.PrioritizedOperations.Add(children);
+                foreach (AsyncOperation spawnee in deprioritizedOperation.Spawnees)
+                {
+                    this.PrioritizedOperations.Remove(spawnee);
+                    this.PrioritizedOperations.Add(spawnee);
+                }
             }
         }
 
