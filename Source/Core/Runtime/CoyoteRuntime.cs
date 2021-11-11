@@ -775,12 +775,14 @@ namespace Microsoft.Coyote.Runtime
         /// Schedules the next enabled operation, which can include the currently executing operation.
         /// </summary>
         /// <param name="type">Type of the operation.</param>
+        /// <param name="isPausing">True if the current operation is pausing, else false.</param>
         /// <param name="isYielding">True if the current operation is yielding, else false.</param>
         /// <param name="checkCaller">If true, schedule only if the caller is an operation.</param>
         /// <remarks>
         /// An enabled operation is one that is not blocked nor completed.
         /// </remarks>
-        internal void ScheduleNextOperation(AsyncOperationType type, bool isYielding = false, bool checkCaller = false)
+        internal void ScheduleNextOperation(AsyncOperationType type, bool isPausing = true,
+            bool isYielding = false, bool checkCaller = false)
         {
             lock (this.SyncObject)
             {
@@ -838,9 +840,13 @@ namespace Microsoft.Coyote.Runtime
                 this.ScheduleTrace.AddSchedulingChoice(next.Id);
                 if (current != next)
                 {
-                    // Pause the currently scheduled operation, and enable the next one.
+                    // Enable the next scheduled operation, and pause the current one.
                     this.ScheduledOperation = next;
-                    this.PauseOperation(current);
+                    SyncMonitor.PulseAll(this.SyncObject);
+                    if (isPausing && current.Status != AsyncOperationStatus.Completed)
+                    {
+                        this.PauseOperation(current);
+                    }
                 }
             }
         }
@@ -874,7 +880,7 @@ namespace Microsoft.Coyote.Runtime
             // The scheduler might need to retry choosing a next operation in the presence of uncontrolled
             // concurrency, as explained below. In this case, we implement a simple retry logic.
             int retries = 0;
-            int delay = 100;
+            int delay = 10;
             do
             {
                 // Enable any blocked operation that has its dependencies already satisfied.
@@ -1086,6 +1092,7 @@ namespace Microsoft.Coyote.Runtime
                 op.Status = AsyncOperationStatus.Enabled;
                 if (this.SchedulingPolicy is SchedulingPolicy.Systematic)
                 {
+                    SyncMonitor.PulseAll(this.SyncObject);
                     this.PauseOperation(op);
                 }
             }
@@ -1104,10 +1111,34 @@ namespace Microsoft.Coyote.Runtime
             {
                 if (this.SchedulingPolicy is SchedulingPolicy.Systematic && this.OperationMap.Count > 1)
                 {
-                    while (op.Status != AsyncOperationStatus.Enabled && this.IsAttached)
+                    try
                     {
-                        SyncMonitor.Wait(this.SyncObject);
+                        // This runtime wait must happen in the original synchronization context
+                        // to differentiate it with a wait due to application code.
+                        this.SetOriginalSynchronizationContext();
+                        while (op.Status != AsyncOperationStatus.Enabled && this.IsAttached)
+                        {
+                            SyncMonitor.Wait(this.SyncObject);
+                        }
                     }
+                    finally
+                    {
+                        this.SetControlledSynchronizationContext();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Pauses the specified operation.
+        /// </summary>
+        internal void SyncPauseOperation(AsyncOperation op)
+        {
+            lock (this.SyncObject)
+            {
+                if (this.SchedulingPolicy is SchedulingPolicy.Systematic)
+                {
+                    this.PauseOperation(op);
                 }
             }
         }
@@ -1120,20 +1151,23 @@ namespace Microsoft.Coyote.Runtime
         /// </remarks>
         private void PauseOperation(AsyncOperation op)
         {
-            SyncMonitor.PulseAll(this.SyncObject);
-            if (op.Status is AsyncOperationStatus.Completed)
+            try
             {
-                // The operation is completed, so no need to wait.
-                return;
+                // This runtime wait must happen in the original synchronization context
+                // to differentiate it with a wait due to application code.
+                this.SetOriginalSynchronizationContext();
+                while (op != this.ScheduledOperation && this.IsAttached)
+                {
+                    IO.Debug.WriteLine("<ScheduleDebug> Sleeping the operation of '{0}' on thread '{1}'.",
+                        op.Name, Thread.CurrentThread.ManagedThreadId);
+                    SyncMonitor.Wait(this.SyncObject);
+                    IO.Debug.WriteLine("<ScheduleDebug> Waking up the operation of '{0}' on thread '{1}'.",
+                        op.Name, Thread.CurrentThread.ManagedThreadId);
+                }
             }
-
-            while (op != this.ScheduledOperation && this.IsAttached)
+            finally
             {
-                IO.Debug.WriteLine("<ScheduleDebug> Sleeping the operation of '{0}' on thread '{1}'.",
-                    op.Name, Thread.CurrentThread.ManagedThreadId);
-                SyncMonitor.Wait(this.SyncObject);
-                IO.Debug.WriteLine("<ScheduleDebug> Waking up the operation of '{0}' on thread '{1}'.",
-                    op.Name, Thread.CurrentThread.ManagedThreadId);
+                this.SetControlledSynchronizationContext();
             }
         }
 
@@ -1209,8 +1243,8 @@ namespace Microsoft.Coyote.Runtime
         }
 
         /// <summary>
-        /// Gets the <see cref="AsyncOperation"/> that is currently executing,
-        /// or null if no such operation is executing.
+        /// Returns the <see cref="AsyncOperation"/> that is currently executing on this thread,
+        /// else returns null if no such operation is executing.
         /// </summary>
 #if !DEBUG
         [DebuggerStepThrough]
@@ -1226,13 +1260,44 @@ namespace Microsoft.Coyote.Runtime
                     this.NotifyUncontrolledTaskDetected(Task.CurrentId);
                 }
 
-                return op.Equals(this.ScheduledOperation) && op is TAsyncOperation expected ? expected : default;
+                // return op.Equals(this.ScheduledOperation) && op is TAsyncOperation expected ? expected : default;
+                return op is TAsyncOperation expected ? expected : default;
             }
         }
 
         /// <summary>
-        /// Gets the <see cref="AsyncOperation"/> associated with the specified
-        /// unique id, or null if no such operation exists.
+        /// Returns the <see cref="AsyncOperation"/> that is currently executing on this thread,
+        /// if it is currently scheduled, else returns false.
+        /// </summary>
+        /// <remarks>
+        /// This method always returns false if the runtime is not configured with the
+        /// <see cref="SchedulingPolicy.Systematic"/> policy.
+        /// </remarks>
+#if !DEBUG
+        [DebuggerStepThrough]
+#endif
+        internal bool TryGetExecutingOperationIfScheduled(out AsyncOperation op)
+        {
+            lock (this.SyncObject)
+            {
+                IO.Debug.WriteLine(">>>> Operation '{0}' is executing in thread '{1}'.",
+                    ExecutingOperation.Value, Thread.CurrentThread.ManagedThreadId);
+                IO.Debug.WriteLine(">>>> Operation '{0}' is scheduled.", this.ScheduledOperation);
+                if (this.SchedulingPolicy is SchedulingPolicy.Systematic &&
+                    (ExecutingOperation.Value?.Equals(this.ScheduledOperation) ?? false))
+                {
+                    op = this.ScheduledOperation;
+                    return true;
+                }
+
+                op = default;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Returns the <see cref="AsyncOperation"/> associated with the specified
+        /// unique id, else returns null if no such operation exists.
         /// </summary>
 #if !DEBUG
         [DebuggerStepThrough]
@@ -1784,6 +1849,12 @@ namespace Microsoft.Coyote.Runtime
         /// </summary>
         internal void SetControlledSynchronizationContext() =>
             SynchronizationContext.SetSynchronizationContext(this.SyncContext);
+
+        /// <summary>
+        /// Sets the synchronization context to the original synchronization context.
+        /// </summary>
+        private void SetOriginalSynchronizationContext() =>
+            SynchronizationContext.SetSynchronizationContext(this.SyncContext.Original);
 
         /// <summary>
         /// Forces the scheduler to terminate.

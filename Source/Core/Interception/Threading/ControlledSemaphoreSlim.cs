@@ -275,7 +275,7 @@ namespace Microsoft.Coyote.Interception
             public override bool Wait(int millisecondsTimeout, CancellationToken cancellationToken)
             {
                 // TODO: support cancellations during testing.
-                this.Resource.Runtime.ScheduleNextOperation(AsyncOperationType.Join, false, true);
+                this.Resource.Runtime.ScheduleNextOperation(AsyncOperationType.Join, checkCaller: true);
 
                 // We need this loop, because when a resource gets released it notifies all asynchronous
                 // operations waiting to acquire it, even if such an operation is still blocked.
@@ -326,7 +326,7 @@ namespace Microsoft.Coyote.Interception
                 // This must be called outside the context of the semaphore, because it notifies
                 // the scheduler to try schedule another asynchronous operation that could in turn
                 // try to acquire this semaphore causing a deadlock.
-                this.Resource.Runtime.ScheduleNextOperation(AsyncOperationType.Release, false, true);
+                this.Resource.Runtime.ScheduleNextOperation(AsyncOperationType.Release, checkCaller: true);
             }
         }
     }

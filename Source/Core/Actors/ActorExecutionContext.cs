@@ -1289,7 +1289,7 @@ namespace Microsoft.Coyote.Actors
                 if (!isFreshDequeue)
                 {
                     // Skip the scheduling point, as this is the first dequeue of the event handler,
-                    // to avoid unecessery context switches.
+                    // to avoid unnecessary context switches.
                     this.Runtime.ScheduleNextOperation(AsyncOperationType.Receive);
                     this.ResetProgramCounter(actor);
                 }

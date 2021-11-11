@@ -27,6 +27,11 @@ namespace Microsoft.Coyote.Runtime
         internal AsyncOperationStatus Status;
 
         /// <summary>
+        /// The execution scope of the operation.
+        /// </summary>
+        internal AsyncOperationScope Scope;
+
+        /// <summary>
         /// The type of the operation.
         /// </summary>
         internal AsyncOperationType Type;
@@ -45,6 +50,7 @@ namespace Microsoft.Coyote.Runtime
             this.Id = operationId;
             this.Name = name;
             this.Status = AsyncOperationStatus.None;
+            this.Scope = AsyncOperationScope.Default;
             this.Type = AsyncOperationType.Start;
         }
 
