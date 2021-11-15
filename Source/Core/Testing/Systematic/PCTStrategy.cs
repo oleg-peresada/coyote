@@ -148,50 +148,64 @@ namespace Microsoft.Coyote.Testing.Systematic
             foreach (var op in ops.Where(op => !this.PrioritizedOperations.Contains(op)))
             {
                 int index = 0;
-                // TODO: refactor, remove above line somehow
-                // TODO: think of cases with mix of tasks and actors, where op would be TaskOperation only sometimes
-                if (op.Spawner == null)
+                string envNewPCT = Environment.GetEnvironmentVariable("MYCOYOTE_NEW_PCT"); // NOTE: MYCOYOTE_NEW_PCT must be a either 0 or 1.
+                bool envNewPCTBool = false;
+                if (envNewPCT != null)
                 {
-                    // Randomly choose a priority for this operation.
-                    // TODO: Experiment with +1, -1, +rand(1,-1), random between children
+                    envNewPCTBool = bool.Parse(envNewPCT);
+                }
+
+                if (!envNewPCTBool)
+                {
                     index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
                 }
                 else
                 {
-                    int beginIndex = 0;
-                    int endIndex = this.PrioritizedOperations.Count;
-                    foreach (var opp in this.PrioritizedOperations)
+                    // TODO: refactor, remove above line somehow
+                    // TODO: think of cases with mix of tasks and actors, where op would be TaskOperation only sometimes
+                    if (op.Spawner == null)
                     {
-                        if (opp.Spawner == op.Spawner || opp == op.Spawner)
+                        // Randomly choose a priority for this operation.
+                        // TODO: Experiment with +1, -1, +rand(1,-1), random between children
+                        index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
+                    }
+                    else
+                    {
+                        int beginIndex = 0;
+                        int endIndex = this.PrioritizedOperations.Count;
+                        foreach (var opp in this.PrioritizedOperations)
                         {
-                            beginIndex = this.PrioritizedOperations.IndexOf(opp);
-                            break;
+                            if (opp.Spawner == op.Spawner || opp == op.Spawner)
+                            {
+                                beginIndex = this.PrioritizedOperations.IndexOf(opp);
+                                break;
+                            }
                         }
-                    }
 
-                    foreach (var opp in this.PrioritizedOperations)
-                    {
-                        if (opp.Spawner == op.Spawner || opp == op.Spawner)
+                        foreach (var opp in this.PrioritizedOperations)
                         {
-                            endIndex = this.PrioritizedOperations.IndexOf(opp);
+                            if (opp.Spawner == op.Spawner || opp == op.Spawner)
+                            {
+                                endIndex = this.PrioritizedOperations.IndexOf(opp);
+                            }
                         }
-                    }
 
-                    if (beginIndex == endIndex)
-                    {
-                        index = beginIndex + this.RandomValueGenerator.Next(1);
-                    }
+                        if (beginIndex == endIndex)
+                        {
+                            index = beginIndex + this.RandomValueGenerator.Next(1);
+                        }
 
-                    // index = this.PrioritizedOperations.IndexOf(op.Spawner) + 1;
-                    index = beginIndex + this.RandomValueGenerator.Next(endIndex + 2);
-                    if (index < 0)
-                    {
-                        index = 0;
-                    }
+                        // index = this.PrioritizedOperations.IndexOf(op.Spawner) + 1;
+                        index = beginIndex + this.RandomValueGenerator.Next(endIndex + 2);
+                        if (index < 0)
+                        {
+                            index = 0;
+                        }
 
-                    if (index > this.PrioritizedOperations.Count)
-                    {
-                        index = this.PrioritizedOperations.Count;
+                        if (index > this.PrioritizedOperations.Count)
+                        {
+                            index = this.PrioritizedOperations.Count;
+                        }
                     }
                 }
 
@@ -249,45 +263,61 @@ namespace Microsoft.Coyote.Testing.Systematic
 
             if (deprioritizedOperation != null)
             {
-                string envPrintNumOfPrioritySwtichPoints = Environment.GetEnvironmentVariable("MYCOYOTE_PRINT_PRIORITY_SWITCHES"); // NOTE: OLP_TEST_PCT_SWITCHES muse be a positive integer.
-                bool envPrintNumOfPrioritySwtichPointsBool = false;
-                if (envPrintNumOfPrioritySwtichPoints != null)
+                string envNewPCT = Environment.GetEnvironmentVariable("MYCOYOTE_NEW_PCT"); // NOTE: MYCOYOTE_NEW_PCT must be a either 0 or 1.
+                bool envNewPCTBool = false;
+                if (envNewPCT != null)
                 {
-                    envPrintNumOfPrioritySwtichPointsBool = bool.Parse(envPrintNumOfPrioritySwtichPoints);
+                    envNewPCTBool = bool.Parse(envNewPCT);
                 }
 
-                if (envPrintNumOfPrioritySwtichPointsBool)
+                if (!envNewPCTBool)
                 {
-                    this.actualNumberOfPrioritySwitches++;
-                    string folder = @"C:\Users\t-fnayyar\Desktop\repos\olp-buggy-branches\";
-                    string fileName = "actualNumberOfPrioritySwitches.txt";
-                    string fullPath = folder + fileName;
-                    File.WriteAllText(fullPath, $"{this.actualNumberOfPrioritySwitches} \n");
+                    // Deprioritize the operation by putting it in the end of the list.
+                    this.PrioritizedOperations.Remove(deprioritizedOperation);
+                    this.PrioritizedOperations.Add(deprioritizedOperation);
                 }
-
-                // Deprioritize the operation by putting it in the end of the list.
-
-                /*this.PrioritizedOperations.Remove(deprioritizedOperation);
-                this.PrioritizedOperations.Add(deprioritizedOperation);
-                foreach (AsyncOperation spawnee in deprioritizedOperation.Spawnees)
+                else
                 {
-                    this.PrioritizedOperations.Remove(spawnee);
-                    this.PrioritizedOperations.Add(spawnee);
-                }*/
-
-                LinkedList<AsyncOperation> toDeprioratize = new LinkedList<AsyncOperation>();
-                foreach (AsyncOperation aop in this.PrioritizedOperations)
-                {
-                    if (aop == deprioritizedOperation || deprioritizedOperation.Spawnees.Contains(aop))
+                    string envPrintNumOfPrioritySwtichPoints = Environment.GetEnvironmentVariable("MYCOYOTE_PRINT_PRIORITY_SWITCHES"); // NOTE: OLP_TEST_PCT_SWITCHES muse be a positive integer.
+                    bool envPrintNumOfPrioritySwtichPointsBool = false;
+                    if (envPrintNumOfPrioritySwtichPoints != null)
                     {
-                        toDeprioratize.AddLast(aop);
+                        envPrintNumOfPrioritySwtichPointsBool = bool.Parse(envPrintNumOfPrioritySwtichPoints);
                     }
-                }
 
-                foreach (AsyncOperation aop in toDeprioratize)
-                {
-                    this.PrioritizedOperations.Remove(aop);
-                    this.PrioritizedOperations.Add(aop);
+                    if (envPrintNumOfPrioritySwtichPointsBool)
+                    {
+                        this.actualNumberOfPrioritySwitches++;
+                        string folder = @"C:\Users\t-fnayyar\Desktop\repos\olp-buggy-branches\";
+                        string fileName = "actualNumberOfPrioritySwitches.txt";
+                        string fullPath = folder + fileName;
+                        File.WriteAllText(fullPath, $"{this.actualNumberOfPrioritySwitches} \n");
+                    }
+
+                    // Deprioritize the operation by putting it in the end of the list.
+
+                    /*this.PrioritizedOperations.Remove(deprioritizedOperation);
+                    this.PrioritizedOperations.Add(deprioritizedOperation);
+                    foreach (AsyncOperation spawnee in deprioritizedOperation.Spawnees)
+                    {
+                        this.PrioritizedOperations.Remove(spawnee);
+                        this.PrioritizedOperations.Add(spawnee);
+                    }*/
+
+                    LinkedList<AsyncOperation> toDeprioratize = new LinkedList<AsyncOperation>();
+                    foreach (AsyncOperation aop in this.PrioritizedOperations)
+                    {
+                        if (aop == deprioritizedOperation || deprioritizedOperation.Spawnees.Contains(aop))
+                        {
+                            toDeprioratize.AddLast(aop);
+                        }
+                    }
+
+                    foreach (AsyncOperation aop in toDeprioratize)
+                    {
+                        this.PrioritizedOperations.Remove(aop);
+                        this.PrioritizedOperations.Add(aop);
+                    }
                 }
             }
         }
