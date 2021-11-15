@@ -158,7 +158,41 @@ namespace Microsoft.Coyote.Testing.Systematic
                 }
                 else
                 {
-                    index = this.PrioritizedOperations.IndexOf(op.Spawner) + 1;
+                    int beginIndex = 0;
+                    int endIndex = this.PrioritizedOperations.Count;
+                    foreach (var opp in this.PrioritizedOperations)
+                    {
+                        if (opp.Spawner == op.Spawner || opp == op.Spawner)
+                        {
+                            beginIndex = this.PrioritizedOperations.IndexOf(opp);
+                            break;
+                        }
+                    }
+
+                    foreach (var opp in this.PrioritizedOperations)
+                    {
+                        if (opp.Spawner == op.Spawner || opp == op.Spawner)
+                        {
+                            endIndex = this.PrioritizedOperations.IndexOf(opp);
+                        }
+                    }
+
+                    if (beginIndex == endIndex)
+                    {
+                        index = beginIndex + this.RandomValueGenerator.Next(1);
+                    }
+
+                    // index = this.PrioritizedOperations.IndexOf(op.Spawner) + 1;
+                    index = beginIndex + this.RandomValueGenerator.Next(endIndex + 2);
+                    if (index < 0)
+                    {
+                        index = 0;
+                    }
+
+                    if (index > this.PrioritizedOperations.Count)
+                    {
+                        index = this.PrioritizedOperations.Count;
+                    }
                 }
 
                 this.PrioritizedOperations.Insert(index, op);
