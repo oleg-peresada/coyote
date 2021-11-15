@@ -266,13 +266,28 @@ namespace Microsoft.Coyote.Testing.Systematic
                 }
 
                 // Deprioritize the operation by putting it in the end of the list.
-                this.PrioritizedOperations.Remove(deprioritizedOperation);
+
+                /*this.PrioritizedOperations.Remove(deprioritizedOperation);
                 this.PrioritizedOperations.Add(deprioritizedOperation);
-                // TODO: for all children of deprioritizedOperation this.PrioritizedOperations.Remove(children); this.PrioritizedOperations.Add(children);
                 foreach (AsyncOperation spawnee in deprioritizedOperation.Spawnees)
                 {
                     this.PrioritizedOperations.Remove(spawnee);
                     this.PrioritizedOperations.Add(spawnee);
+                }*/
+
+                LinkedList<AsyncOperation> toDeprioratize = new LinkedList<AsyncOperation>();
+                foreach (AsyncOperation aop in this.PrioritizedOperations)
+                {
+                    if (aop == deprioritizedOperation || deprioritizedOperation.Spawnees.Contains(aop))
+                    {
+                        toDeprioratize.AddLast(aop);
+                    }
+                }
+
+                foreach (AsyncOperation aop in toDeprioratize)
+                {
+                    this.PrioritizedOperations.Remove(aop);
+                    this.PrioritizedOperations.Add(aop);
                 }
             }
         }
