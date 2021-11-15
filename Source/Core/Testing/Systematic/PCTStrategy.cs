@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.Coyote.IO;
 using Microsoft.Coyote.Runtime;
@@ -18,6 +19,10 @@ namespace Microsoft.Coyote.Testing.Systematic
     /// </remarks>
     internal sealed class PCTStrategy : SystematicStrategy
     {
+        private int enabledSpawneesCountMax = 0;
+
+        private int actualNumberOfPrioritySwitches = 0;
+
         /// <summary>
         /// Random value generator.
         /// </summary>
@@ -114,6 +119,18 @@ namespace Microsoft.Coyote.Testing.Systematic
             next = enabledOps.First(op => op.Equals(highestEnabledOperation));
             Console.WriteLine("<PCTLog> next operation scheduled is: '{0}'.", next);
             this.StepCount++;
+            string envPrintEnabledChildrenDepth = Environment.GetEnvironmentVariable("MYCOYOTE_PRINT_MAX_ENABLED_CHILDS"); // NOTE: OLP_TEST_PCT_SWITCHES muse be a positive integer.
+            bool envPrintEnabledChildrenDepthBool = false;
+            if (envPrintEnabledChildrenDepth != null)
+            {
+                envPrintEnabledChildrenDepthBool = bool.Parse(envPrintEnabledChildrenDepth);
+            }
+
+            if (envPrintEnabledChildrenDepthBool)
+            {
+                this.DebugPrintMaxEnabledSpawneeDepth(enabledOps);
+            }
+
             return true;
         }
 
@@ -149,6 +166,27 @@ namespace Microsoft.Coyote.Testing.Systematic
             }
         }
 
+        private void DebugPrintMaxEnabledSpawneeDepth(List<AsyncOperation> enabledOps)
+        {
+            foreach (var op in this.PrioritizedOperations)
+            {
+                int enabledSpawneesCount = 0;
+                foreach (var spawnee in op.Spawnees.Where(spawnee => enabledOps.Contains(spawnee)))
+                {
+                    enabledSpawneesCount++;
+                }
+
+                if (this.enabledSpawneesCountMax < enabledSpawneesCount)
+                {
+                    this.enabledSpawneesCountMax = enabledSpawneesCount;
+                    string folder = @"C:\Users\t-fnayyar\Desktop\repos\olp-buggy-branches\";
+                    string fileName = "maxEnabledChildDepth.txt";
+                    string fullPath = folder + fileName;
+                    File.WriteAllText(fullPath, $"{this.enabledSpawneesCountMax} \n");
+                }
+            }
+        }
+
         /// <summary>
         /// Deprioritizes the enabled operation with the highest priority, if there is a
         /// priotity change point installed on the current execution step.
@@ -177,6 +215,22 @@ namespace Microsoft.Coyote.Testing.Systematic
 
             if (deprioritizedOperation != null)
             {
+                string envPrintNumOfPrioritySwtichPoints = Environment.GetEnvironmentVariable("MYCOYOTE_PRINT_PRIORITY_SWITCHES"); // NOTE: OLP_TEST_PCT_SWITCHES muse be a positive integer.
+                bool envPrintNumOfPrioritySwtichPointsBool = false;
+                if (envPrintNumOfPrioritySwtichPoints != null)
+                {
+                    envPrintNumOfPrioritySwtichPointsBool = bool.Parse(envPrintNumOfPrioritySwtichPoints);
+                }
+
+                if (envPrintNumOfPrioritySwtichPointsBool)
+                {
+                    this.actualNumberOfPrioritySwitches++;
+                    string folder = @"C:\Users\t-fnayyar\Desktop\repos\olp-buggy-branches\";
+                    string fileName = "actualNumberOfPrioritySwitches.txt";
+                    string fullPath = folder + fileName;
+                    File.WriteAllText(fullPath, $"{this.actualNumberOfPrioritySwitches} \n");
+                }
+
                 // Deprioritize the operation by putting it in the end of the list.
                 this.PrioritizedOperations.Remove(deprioritizedOperation);
                 this.PrioritizedOperations.Add(deprioritizedOperation);
