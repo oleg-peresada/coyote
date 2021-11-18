@@ -194,9 +194,11 @@ namespace Microsoft.Coyote.Testing.Systematic
                         {
                             index = beginIndex + this.RandomValueGenerator.Next(1);
                         }
+                        else
+                        {
+                            index = beginIndex + this.RandomValueGenerator.Next(endIndex + 2);
+                        }
 
-                        // index = this.PrioritizedOperations.IndexOf(op.Spawner) + 1;
-                        index = beginIndex + this.RandomValueGenerator.Next(endIndex + 2);
                         if (index < 0)
                         {
                             index = 0;
@@ -206,6 +208,8 @@ namespace Microsoft.Coyote.Testing.Systematic
                         {
                             index = this.PrioritizedOperations.Count;
                         }
+
+                        // index = this.PrioritizedOperations.IndexOf(op.Spawner) + 1;
                     }
                 }
 
