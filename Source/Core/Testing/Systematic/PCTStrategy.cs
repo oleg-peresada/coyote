@@ -196,7 +196,7 @@ namespace Microsoft.Coyote.Testing.Systematic
                         }
                         else
                         {
-                            index = beginIndex + this.RandomValueGenerator.Next(endIndex + 2);
+                            index = beginIndex + this.RandomValueGenerator.Next(endIndex - beginIndex + 1); // TODO: maybe fix the bug
                         }
 
                         if (index < 0)
@@ -311,7 +311,8 @@ namespace Microsoft.Coyote.Testing.Systematic
                     LinkedList<AsyncOperation> toDeprioratize = new LinkedList<AsyncOperation>();
                     foreach (AsyncOperation aop in this.PrioritizedOperations)
                     {
-                        if (aop == deprioritizedOperation || deprioritizedOperation.Spawnees.Contains(aop))
+                        // deprioratize all the children (spanwnees), siblings and parent.
+                        if (aop == deprioritizedOperation || deprioritizedOperation.Spawnees.Contains(aop) || aop.Spawner == deprioritizedOperation.Spawner || aop == deprioritizedOperation.Spawner)
                         {
                             toDeprioratize.AddLast(aop);
                         }
