@@ -81,6 +81,32 @@ namespace Microsoft.Coyote.Testing.Systematic
             // plus its also interesting to explore a schedule with no forced priority switch points.
             if (iteration > 0)
             {
+                string envPCTProbability = Environment.GetEnvironmentVariable("MYCOYOTE_PCT_PROB"); // NOTE: MYCOYOTE_NEW_PCT must be a either 0 or 1.
+                bool envPCTProbabilityBool = false;
+                if (envPCTProbability != null)
+                {
+                    envPCTProbabilityBool = bool.Parse(envPCTProbability);
+                }
+
+                if (envPCTProbabilityBool)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"        <PCTLog> Iteration : {iteration}");
+                    int n = this.PrioritizedOperations.Count;
+                    int d = this.MaxPrioritySwitchPoints;
+                    int k = this.StepCount;
+                    double power = Math.Pow(k, d - 1);
+                    double denominator = ((double)n) * power;
+                    double theoreticalProbability = 1 / denominator;
+                    // Console.WriteLine($"        <PCTLog> power = {power}, denominator = {denominator}");
+                    // Console.WriteLine($"        <PCTLog> this.PrioritizedOperations.Count: N = {n}");
+                    // Console.WriteLine($"        <PCTLog> this.MaxPrioritySwitchPoints: D = {d}");
+                    // Console.WriteLine($"        <PCTLog> this.StepCount: K = {k}");
+                    Console.WriteLine($"        <PCTLog> N = {n}, D = {d}, K = {k}");
+                    Console.WriteLine($"        <PCTLog> Theoretical-Probability : {theoreticalProbability}");
+                    Console.WriteLine();
+                }
+
                 this.ScheduleLength = Math.Max(this.ScheduleLength, this.StepCount);
                 this.StepCount = 0;
 
