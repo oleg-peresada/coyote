@@ -1,9 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Coyote.Runtime;
+using Microsoft.Coyote.Specifications;
 
 namespace Microsoft.Coyote.Testing.Systematic
 {
@@ -34,6 +36,8 @@ namespace Microsoft.Coyote.Testing.Systematic
         {
             this.RandomValueGenerator = generator;
             this.MaxSteps = maxSteps;
+            this.registeredOps = new HashSet<AsyncOperation>();
+            this.ContextSwitchNumber = 0;
         }
 
         /// <inheritdoc/>
@@ -42,13 +46,146 @@ namespace Microsoft.Coyote.Testing.Systematic
             // The random strategy just needs to reset the number of scheduled steps during
             // the current iretation.
             this.StepCount = 0;
+            this.registeredOps.Clear();
+            this.ContextSwitchNumber = 0;
             return true;
+        }
+
+        private readonly HashSet<AsyncOperation> registeredOps;
+
+        private int ContextSwitchNumber;
+
+        private void DebugPrintBeforeGetNextOperation(IEnumerable<AsyncOperation> opss)
+        {
+            this.ContextSwitchNumber += 1;
+            var ops = opss.ToList();
+            Console.WriteLine($"          ops.Count = {ops.Count}");
+            int countt = 0;
+            foreach (var op in ops)
+            {
+                if (countt == 0)
+                {
+                    Console.Write($"          {op}");
+                }
+                else
+                {
+                    Console.Write($", {op}");
+                }
+
+                countt++;
+            }
+
+            Console.WriteLine();
+
+            countt = 0;
+            foreach (var op in ops)
+            {
+                if (countt == 0)
+                {
+                    Console.Write($"          {op.Status}");
+                }
+                else
+                {
+                    Console.Write($", {op.Status}");
+                }
+
+                countt++;
+            }
+
+            Console.WriteLine();
+
+            countt = 0;
+            foreach (var op in ops)
+            {
+                if (countt == 0)
+                {
+                    Console.Write($"          {op.Type}");
+                }
+                else
+                {
+                    Console.Write($", {op.Type}");
+                }
+
+                countt++;
+            }
+
+            Console.WriteLine();
+
+            HashSet<AsyncOperation> newConcurrentOps = new HashSet<AsyncOperation>();
+            foreach (var op in ops)
+            {
+                if (!this.registeredOps.Contains(op))
+                {
+                    newConcurrentOps.Add(op);
+                    this.registeredOps.Add(op);
+                }
+            }
+
+            Console.WriteLine($"          # new operations added {newConcurrentOps.Count}");
+            Specification.Assert((newConcurrentOps.Count <= 1) || (newConcurrentOps.Count == 2 && this.ContextSwitchNumber == 1),
+                $"     <TaskSummaryLog-ERROR> At most one new operation must be added across context switch.");
+
+            int cases = 0;
+
+            if (newConcurrentOps.Count == 0)
+            {
+                Console.WriteLine($"     <TaskSummaryLog> T-case 1.): No new task added.");
+                cases = 1;
+            }
+
+            foreach (var op in newConcurrentOps)
+            {
+                Console.WriteLine($"          newConcurrentOps: {op}, Spawner: {op.Spawner}, SpawnChainNumber: {op.SpawnChainNumber}, DepthInSpawnChain: {op.DepthInSpawnChain}");
+                if (op.IsContinuationTask)
+                {
+                    if (op.ParentTask == null)
+                    {
+                        Console.WriteLine($"     <TaskSummaryLog> T-case 3.): Continuation task {op} (id = {op.Id}) is the first task to be created!");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"     <TaskSummaryLog> T-case 3.): Continuation task {op} (id = {op.Id}) created by {op.ParentTask} (id = {op.ParentTask.Id}).");
+                    }
+
+                    cases = 3;
+                }
+                else
+                {
+                    if (op.ParentTask == null)
+                    {
+                        Console.WriteLine($"     <TaskSummaryLog> T-case 2.): Spawn task {op} (id = {op.Id}) is the first task to be created!");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"     <TaskSummaryLog> T-case 2.): Spawn task {op} (id = {op.Id}) created by {op.ParentTask} (id = {op.ParentTask.Id}).");
+                    }
+
+                    cases = 2;
+                }
+            }
+
+            Specification.Assert( (cases == 1) || (cases == 2) || (cases == 3),
+                $"     <TaskSummaryLog-ERROR> At most one new operation must be added across context switch.");
+
+            // Console.WriteLine();
+        }
+
+        private static void DebugPrintAfterGetNextOperation(AsyncOperation next)
+        {
+            Console.WriteLine($"          next = {next}");
+            Console.WriteLine($"     <TaskSummaryLog> Scheduled: {next}");
+            // Console.WriteLine();
+            // Console.WriteLine();
+            // Console.WriteLine();
+            // Console.WriteLine();
+            // Console.WriteLine();
         }
 
         /// <inheritdoc/>
         internal override bool GetNextOperation(IEnumerable<AsyncOperation> ops, AsyncOperation current,
             bool isYielding, out AsyncOperation next)
         {
+            this.DebugPrintBeforeGetNextOperation(ops);
             var enabledOps = ops.Where(op => op.Status is AsyncOperationStatus.Enabled).ToList();
             if (enabledOps.Count is 0)
             {
@@ -60,6 +197,7 @@ namespace Microsoft.Coyote.Testing.Systematic
             next = enabledOps[idx];
 
             this.StepCount++;
+            DebugPrintAfterGetNextOperation(next);
             return true;
         }
 

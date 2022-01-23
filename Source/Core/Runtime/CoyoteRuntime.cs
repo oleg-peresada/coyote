@@ -189,6 +189,8 @@ namespace Microsoft.Coyote.Runtime
         internal SchedulingPolicy SchedulingPolicy => this.Scheduler?.SchedulingPolicy ??
             SchedulingPolicy.None;
 
+        public int NumSpawnTasksSoFar = 0;
+
         /// <summary>
         /// True if a bug was found, else false.
         /// </summary>
@@ -412,6 +414,21 @@ namespace Microsoft.Coyote.Runtime
             }
 
             TaskOperation op = this.CreateTaskOperation();
+
+            // Continuation task
+
+            // Important for graph creation
+            AsyncOperation spawner = ExecutingOperation.Value;
+            op.ParentTask = spawner;
+            op.IsContinuationTask = true;
+
+            // Past work
+            List<AsyncOperation> spawneeList = spawner.Spawnees;
+            op.Spawner = spawner;
+            spawneeList.Add(op);
+            op.SpawnChainNumber = spawner.SpawnChainNumber;
+            op.DepthInSpawnChain = spawner.DepthInSpawnChain + 1;
+
             var thread = new Thread(() =>
             {
                 try
@@ -471,6 +488,19 @@ namespace Microsoft.Coyote.Runtime
             }
 
             TaskOperation op = task.AsyncState as TaskOperation ?? this.CreateTaskOperation();
+
+            // Spwan task
+
+            // Important for graph creation
+            AsyncOperation spawner = ExecutingOperation.Value;
+            op.ParentTask = spawner;
+            op.IsContinuationTask = false;
+
+            // Past work
+            this.NumSpawnTasksSoFar += 1;
+            op.SpawnChainNumber = this.NumSpawnTasksSoFar;
+            op.DepthInSpawnChain = 0;
+
             var thread = new Thread(() =>
             {
                 try
