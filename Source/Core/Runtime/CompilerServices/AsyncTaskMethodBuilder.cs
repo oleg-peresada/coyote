@@ -32,12 +32,15 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         private SystemCompiler.AsyncTaskMethodBuilder MethodBuilder;
 #pragma warning restore IDE0044 // Add readonly modifier
 
+        // private string ParentOperation;
+        private AsyncOperation ParentOperation;
+
         /// <summary>
         /// Gets the task for this builder.
         /// </summary>
         public Task Task
         {
-            [DebuggerHidden]
+            // [DebuggerHidden]
             get
             {
                 IO.Debug.WriteLine("<AsyncBuilder> Creating builder task '{0}' from thread '{1}' (isCompleted {2}).",
@@ -54,6 +57,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         {
             this.Runtime = runtime;
             this.MethodBuilder = default;
+            this.ParentOperation = default;
         }
 
         /// <summary>
@@ -74,12 +78,14 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Begins running the builder with the associated state machine.
         /// </summary>
-        [DebuggerStepThrough]
+        // [DebuggerStepThrough]
         public void Start<TStateMachine>(ref TStateMachine stateMachine)
             where TStateMachine : IAsyncStateMachine
         {
+            this.ParentOperation = CoyoteRuntime.ThreadLocalParentAsyncOperation.Value;
             IO.Debug.WriteLine("<AsyncBuilder> Start state machine from thread '{0}' with context '{1}' and runtime '{2}'.",
                 Thread.CurrentThread.ManagedThreadId, SynchronizationContext.Current, this.Runtime?.Id);
+            IO.Debug.WriteLine($"===========<F_AsyncBuilder> [Start] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {CoyoteRuntime.ThreadLocalParentAsyncOperation?.Value}");
             this.MethodBuilder.Start(ref stateMachine);
         }
 
@@ -100,6 +106,16 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         }
 
         /// <summary>
+        /// Callback to AsyncTaskMethodBuilder before MoveNext method at IL level.
+        /// </summary>
+        // [DebuggerHidden]
+        public void OnMoveNext()
+        {
+            IO.Debug.WriteLine($"===========<F_AsyncBuilder> [onMoveNext] ParentOperation: {this.ParentOperation}, thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {CoyoteRuntime.ThreadLocalParentAsyncOperation?.Value}");
+            this.Runtime?.SetParentOnMoveNext(this.ParentOperation);
+        }
+
+        /// <summary>
         /// Marks the task as failed and binds the specified exception to the task.
         /// </summary>
         public void SetException(Exception exception) => this.MethodBuilder.SetException(exception);
@@ -107,7 +123,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Schedules the state machine to proceed to the next action when the specified awaiter completes.
         /// </summary>
-        [DebuggerHidden]
+        // [DebuggerHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
             where TAwaiter : INotifyCompletion
@@ -117,12 +133,22 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Schedules the state machine to proceed to the next action when the specified awaiter completes.
         /// </summary>
-        [DebuggerHidden]
+        // [DebuggerHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
             where TAwaiter : ICriticalNotifyCompletion
-            where TStateMachine : IAsyncStateMachine =>
-            this.MethodBuilder.AwaitUnsafeOnCompleted(ref awaiter, ref stateMachine);
+            where TStateMachine : IAsyncStateMachine
+            {
+                IO.Debug.WriteLine($"===========<F_AsyncBuilder> [AwaitUnsafeOnCompleted] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {CoyoteRuntime.ThreadLocalParentAsyncOperation?.Value}");
+
+                // this.Runtime?.OnAwaitUnsafeOnCompleted(this.ParentOperation);
+                // if (this.Runtime != null)
+                // {
+                //     this.Runtime.YieldCaseFlag = true;
+                // }
+
+                this.MethodBuilder.AwaitUnsafeOnCompleted(ref awaiter, ref stateMachine);
+            }
     }
 
     /// <summary>
@@ -146,12 +172,15 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         private SystemCompiler.AsyncTaskMethodBuilder<TResult> MethodBuilder;
 #pragma warning restore IDE0044 // Add readonly modifier
 
+        // private string ParentOperation;
+        private AsyncOperation ParentOperation;
+
         /// <summary>
         /// Gets the task for this builder.
         /// </summary>
         public Task<TResult> Task
         {
-            [DebuggerHidden]
+            // [DebuggerHidden]
             get
             {
                 IO.Debug.WriteLine("<AsyncBuilder> Creating builder task '{0}' from thread '{1}' (isCompleted {2}).",
@@ -168,6 +197,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         {
             this.Runtime = runtime;
             this.MethodBuilder = default;
+            this.ParentOperation = default;
         }
 
         /// <summary>
@@ -190,12 +220,14 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Begins running the builder with the associated state machine.
         /// </summary>
-        [DebuggerStepThrough]
+        // [DebuggerStepThrough]
         public void Start<TStateMachine>(ref TStateMachine stateMachine)
             where TStateMachine : IAsyncStateMachine
         {
+            this.ParentOperation = CoyoteRuntime.ThreadLocalParentAsyncOperation.Value;
             IO.Debug.WriteLine("<AsyncBuilder> Start state machine from thread '{0}' with context '{1}' and runtime '{2}'.",
                 Thread.CurrentThread.ManagedThreadId, SynchronizationContext.Current, this.Runtime?.Id);
+            IO.Debug.WriteLine($"===========<F_AsyncBuilder> [Start] thread {Thread.CurrentThread.ManagedThreadId}, Task: ?, tlid: {CoyoteRuntime.ThreadLocalParentAsyncOperation?.Value}");
             this.MethodBuilder.Start(ref stateMachine);
         }
 
@@ -217,6 +249,16 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         }
 
         /// <summary>
+        /// Callback to AsyncTaskMethodBuilder before MoveNext method at IL level.
+        /// </summary>
+        // [DebuggerHidden]
+        public void OnMoveNext()
+        {
+            IO.Debug.WriteLine($"===========<F_AsyncBuilder> [onMoveNext] ParentOperation: {this.ParentOperation}, thread: {Thread.CurrentThread.ManagedThreadId}, Task: ?, tlid: {CoyoteRuntime.ThreadLocalParentAsyncOperation?.Value}");
+            this.Runtime?.SetParentOnMoveNext(this.ParentOperation);
+        }
+
+        /// <summary>
         /// Marks the task as failed and binds the specified exception to the task.
         /// </summary>
         public void SetException(Exception exception) => this.MethodBuilder.SetException(exception);
@@ -224,7 +266,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Schedules the state machine to proceed to the next action when the specified awaiter completes.
         /// </summary>
-        [DebuggerHidden]
+        // [DebuggerHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
                 where TAwaiter : INotifyCompletion
@@ -234,11 +276,21 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Schedules the state machine to proceed to the next action when the specified awaiter completes.
         /// </summary>
-        [DebuggerHidden]
+        // [DebuggerHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
             where TAwaiter : ICriticalNotifyCompletion
-            where TStateMachine : IAsyncStateMachine =>
-            this.MethodBuilder.AwaitUnsafeOnCompleted(ref awaiter, ref stateMachine);
+            where TStateMachine : IAsyncStateMachine
+            {
+                IO.Debug.WriteLine($"===========<F_AsyncBuilder> [AwaitUnsafeOnCompleted] thread {Thread.CurrentThread.ManagedThreadId}, Task: ?, tlid: {CoyoteRuntime.ThreadLocalParentAsyncOperation?.Value}");
+
+                // this.Runtime?.OnAwaitUnsafeOnCompleted(this.ParentOperation);
+                // if (this.Runtime != null)
+                // {
+                //     this.Runtime.YieldCaseFlag = true;
+                // }
+
+                this.MethodBuilder.AwaitUnsafeOnCompleted(ref awaiter, ref stateMachine);
+            }
     }
 }

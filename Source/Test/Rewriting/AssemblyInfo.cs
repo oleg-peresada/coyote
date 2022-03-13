@@ -6,9 +6,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+
 using Microsoft.Coyote.IO;
+using Microsoft.Coyote.Runtime.CompilerServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Collections.Generic;
+
+using SystemCompiler = System.Runtime.CompilerServices;
 
 namespace Microsoft.Coyote.Rewriting
 {
@@ -139,11 +144,14 @@ namespace Microsoft.Coyote.Rewriting
             return SortAssemblies(assemblies);
         }
 
+        private readonly HashSet<TypeDefinition> IAsyncStateMachineTypesSet = new HashSet<TypeDefinition>();
+
         /// <summary>
         /// Invokes the specified analysis or transformation pass on the assembly.
         /// </summary>
         internal void Invoke(Pass pass)
         {
+            // REWRITING: control ultimately reaches here for running a pass on an assembly.
             pass.VisitAssembly(this.Definition);
             foreach (var module in this.Definition.Modules)
             {
@@ -152,6 +160,102 @@ namespace Microsoft.Coyote.Rewriting
                 foreach (var type in module.GetTypes())
                 {
                     Debug.WriteLine($"......... Type: {type.FullName}");
+
+                    string envRewritingHack = Environment.GetEnvironmentVariable("F_COYOTE_REWRITING_HACK"); // NOTE: OLP_TEST_VERBOSITY muse be string, either "true" or "false"
+                    bool envRewritingHackBool = false;
+                    if (envRewritingHack != null)
+                    {
+                        envRewritingHackBool = bool.Parse(envRewritingHack);
+                    }
+
+                    if (envRewritingHackBool)
+                    {
+                        bool isAsyncStateMachineType = type.Interfaces.Any(i => i.InterfaceType.FullName == typeof(SystemCompiler.IAsyncStateMachine).FullName);
+                        if (isAsyncStateMachineType)
+                        {
+                            if (!this.IAsyncStateMachineTypesSet.Contains(type))
+                            {
+                                this.IAsyncStateMachineTypesSet.Add(type);
+                                Collection<MethodDefinition> methods = type.Methods;
+                                foreach (MethodDefinition method in methods)
+                                {
+                                    if (method.FullName.Contains("MoveNext"))
+                                    {
+                                        // var providerType = this.Method.Module.ImportReference(typeof(ExceptionProvider)).Resolve();
+                                        // MethodReference providerMethod = providerType.Methods.FirstOrDefault(
+                                        //     m => m.Name is nameof(ExceptionProvider.ThrowIfThreadInterruptedException));
+                                        // providerMethod = this.Method.Module.ImportReference(providerMethod);
+
+                                        // var processor = this.Method.Body.GetILProcessor();
+                                        // var newStart = Instruction.Create(OpCodes.Dup);
+                                        // var previousStart = handler.HandlerStart;
+                                        // processor.InsertBefore(handler.HandlerStart, newStart);
+                                        // processor.InsertBefore(handler.HandlerStart, Instruction.Create(OpCodes.Call, providerMethod));
+                                        // handler.HandlerStart = newStart;
+
+                                        Console.WriteLine($"F_REWRITING_OUT MN BEFORE ==> method.FullName: {method.FullName}, method: {method}");
+                                        var instructionList = method.Body.Instructions.ToList();
+                                        Console.WriteLine($"F_REWRITING_OUT MN BEFORE ==> method.Body(complere): ");
+                                        foreach (var instruction in instructionList)
+                                        {
+                                            Console.WriteLine($"          {instruction}");
+                                        }
+
+                                        var processor = method.Body.GetILProcessor();
+
+                                        FieldReference asyncTaskMethodBuilderFieldRef = null;
+                                        foreach (FieldReference field in type.Fields)
+                                        {
+                                            if (field.FieldType.FullName.Contains("AsyncTaskMethodBuilder"))
+                                            {
+                                                asyncTaskMethodBuilderFieldRef = field;
+                                            }
+                                        }
+
+                                        asyncTaskMethodBuilderFieldRef = asyncTaskMethodBuilderFieldRef.Resolve();
+                                        asyncTaskMethodBuilderFieldRef = method.Module.ImportReference(asyncTaskMethodBuilderFieldRef);
+
+                                        // FieldDefinition asyncTaskMethodBuilderFieldDef = method.DeclaringType.Fields.Single(m => m.Name == "AsyncTaskMethodBuilder").Resolve();
+                                        // asyncTaskMethodBuilderFieldRef.Instance();
+                                        // asyncTaskMethodBuilderFieldRef.Module
+                                        // TypeReference asyncTaskMethodBuilderType = asyncTaskMethodBuilderFieldRef.FieldType;
+                                        // MethodReference onMoveNextMethod = asyncTaskMethodBuilderType.Resolve().Methods.FirstOrDefault(
+                                        //     m => m.Name is nameof(AsyncTaskMethodBuilder.OnMoveNext));
+
+                                        // var providerType = this.Module.ImportReference(typeof(ExceptionProvider)).Resolve();
+                                        // MethodReference providerMethod = providerType.Methods.FirstOrDefault(
+                                        //     m => m.Name is nameof(ExceptionProvider.ThrowIfReturnedTaskNotControlled));
+                                        // providerMethod = this.Module.ImportReference(providerMethod);
+                                        TypeDefinition asyncTaskMethodBuilderType = method.Module.ImportReference(typeof(AsyncTaskMethodBuilder)).Resolve();
+                                        MethodReference onMoveNextMethod = asyncTaskMethodBuilderType.Methods.FirstOrDefault(
+                                            m => m.Name is nameof(AsyncTaskMethodBuilder.OnMoveNext));
+                                        onMoveNextMethod = method.Module.ImportReference(onMoveNextMethod);
+
+                                        // onMoveNextMethod = asyncTaskMethodBuilderFieldRef.ty
+                                        processor.InsertBefore(method.Body.Instructions[0], processor.Create(OpCodes.Call, onMoveNextMethod));
+                                        processor.InsertBefore(method.Body.Instructions[0], processor.Create(OpCodes.Ldflda, asyncTaskMethodBuilderFieldRef));
+                                        processor.InsertBefore(method.Body.Instructions[0], processor.Create(OpCodes.Ldarg_0));
+
+                                        // method.Body.Instructions.Insert(0, Instruction.Create(OpCodes.Call, "Microsoft.Coyote.Runtime.CompilerServices.AsyncTaskMethodBuilder::Create()"));
+                                        Console.WriteLine($"F_REWRITING_OUT MN AFTER ==> method.Body: {method.Body.ToString()}, asyncTaskMethodBuilderFieldRef: {asyncTaskMethodBuilderFieldRef}, onMoveNextMethod: {onMoveNextMethod}");
+                                        instructionList = method.Body.Instructions.ToList();
+                                        Console.WriteLine($"F_REWRITING_OUT MN AFTER ==> method.Body(complere): ");
+                                        foreach (var instruction in instructionList)
+                                        {
+                                            Console.WriteLine($"          {instruction}");
+                                        }
+
+                                        // method.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+                                    }
+                                }
+
+                                // type.Fields.Add(new FieldDefinition("asyncMethodName", Mono.Cecil.FieldAttributes.Private,
+                                // module.ImportReference(typeof(string))));
+                                Console.WriteLine($"F_REWRITING_OUT ==> type.FullName: {type.FullName}, type: {type}");
+                            }
+                        }
+                    }
+
                     pass.VisitType(type);
                     foreach (var field in type.Fields.ToArray())
                     {

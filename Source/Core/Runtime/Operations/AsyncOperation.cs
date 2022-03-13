@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Generic;
+// using System.Collections.Generic;
 
 namespace Microsoft.Coyote.Runtime
 {
@@ -16,14 +16,14 @@ namespace Microsoft.Coyote.Runtime
         public bool IsContinuationTask = false;
 
         // TODO: make it internal or private
-        public AsyncOperation Spawner = null;
+        // public AsyncOperation Spawner = null;
 
         // TODO: make it internal or private, initialize properly inside a constructor
-        public List<AsyncOperation> Spawnees = new List<AsyncOperation>();
+        // public List<AsyncOperation> Spawnees = new List<AsyncOperation>();
 
-        public int SpawnChainNumber = 0;
+        // public int SpawnChainNumber = 0;
 
-        public int DepthInSpawnChain = 0;
+        // public int DepthInSpawnChain = 0;
 
         /// <summary>
         /// The unique id of the operation.
