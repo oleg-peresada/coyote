@@ -32,7 +32,6 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         private SystemCompiler.AsyncTaskMethodBuilder MethodBuilder;
 #pragma warning restore IDE0044 // Add readonly modifier
 
-        // private string ParentOperation;
         private AsyncOperation ParentOperation;
 
         /// <summary>
@@ -40,7 +39,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// </summary>
         public Task Task
         {
-            // [DebuggerHidden]
+            [DebuggerHidden]
             get
             {
                 IO.Debug.WriteLine("<AsyncBuilder> Creating builder task '{0}' from thread '{1}' (isCompleted {2}).",
@@ -78,7 +77,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Begins running the builder with the associated state machine.
         /// </summary>
-        // [DebuggerStepThrough]
+        [DebuggerStepThrough]
         public void Start<TStateMachine>(ref TStateMachine stateMachine)
             where TStateMachine : IAsyncStateMachine
         {
@@ -123,7 +122,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Schedules the state machine to proceed to the next action when the specified awaiter completes.
         /// </summary>
-        // [DebuggerHidden]
+        [DebuggerHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
             where TAwaiter : INotifyCompletion
@@ -133,7 +132,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Schedules the state machine to proceed to the next action when the specified awaiter completes.
         /// </summary>
-        // [DebuggerHidden]
+        [DebuggerHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
             where TAwaiter : ICriticalNotifyCompletion
@@ -172,7 +171,6 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         private SystemCompiler.AsyncTaskMethodBuilder<TResult> MethodBuilder;
 #pragma warning restore IDE0044 // Add readonly modifier
 
-        // private string ParentOperation;
         private AsyncOperation ParentOperation;
 
         /// <summary>
@@ -180,7 +178,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// </summary>
         public Task<TResult> Task
         {
-            // [DebuggerHidden]
+            [DebuggerHidden]
             get
             {
                 IO.Debug.WriteLine("<AsyncBuilder> Creating builder task '{0}' from thread '{1}' (isCompleted {2}).",
@@ -220,7 +218,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Begins running the builder with the associated state machine.
         /// </summary>
-        // [DebuggerStepThrough]
+        [DebuggerStepThrough]
         public void Start<TStateMachine>(ref TStateMachine stateMachine)
             where TStateMachine : IAsyncStateMachine
         {
@@ -266,7 +264,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Schedules the state machine to proceed to the next action when the specified awaiter completes.
         /// </summary>
-        // [DebuggerHidden]
+        [DebuggerHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
                 where TAwaiter : INotifyCompletion
@@ -276,7 +274,7 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
         /// <summary>
         /// Schedules the state machine to proceed to the next action when the specified awaiter completes.
         /// </summary>
-        // [DebuggerHidden]
+        [DebuggerHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
             where TAwaiter : ICriticalNotifyCompletion
