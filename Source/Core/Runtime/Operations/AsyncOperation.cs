@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 
 namespace Microsoft.Coyote.Runtime
 {
@@ -13,6 +14,17 @@ namespace Microsoft.Coyote.Runtime
         public AsyncOperation ParentTask = null;
 
         public bool IsContinuationTask = false;
+
+         // TODO: make it internal or private, initialize properly inside a constructor
+        public List<AsyncOperation> Spawnees = new List<AsyncOperation>();
+
+        public bool LastMoveNextHandled = true;
+
+        // public int AsyncStateMachineID = -1;
+
+        public int TaskGroupID = -1;
+
+        public bool IsOwnerSpawnOperation = false;
 
         /// <summary>
         /// The unique id of the operation.

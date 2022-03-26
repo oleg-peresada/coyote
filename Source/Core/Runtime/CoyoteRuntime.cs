@@ -29,6 +29,8 @@ namespace Microsoft.Coyote.Runtime
     /// </remarks>
     internal sealed class CoyoteRuntime : IDisposable
     {
+        private readonly List<AsyncOperation> AsyncStateMachineOwnerOperationsList = new List<AsyncOperation>();
+
         internal static ThreadLocal<AsyncOperation> ThreadLocalParentAsyncOperation = new ThreadLocal<AsyncOperation>();
 
         /// <summary>
@@ -191,6 +193,10 @@ namespace Microsoft.Coyote.Runtime
         internal SchedulingPolicy SchedulingPolicy => this.Scheduler?.SchedulingPolicy ??
             SchedulingPolicy.None;
 
+        public int NumSpawnTasks;
+
+        public int NumContinuationTasks;
+
         /// <summary>
         /// True if a bug was found, else false.
         /// </summary>
@@ -310,10 +316,26 @@ namespace Microsoft.Coyote.Runtime
             this.Assert(testMethod != null, "Unable to execute a null test method.");
 
             TaskOperation op = this.CreateTaskOperation();
-            IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [RunTestAsync] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
+
+            this.NumSpawnTasks++;
+
+            this.AsyncStateMachineOwnerOperationsList.Add(op);
             op.ParentTask = op;
-            IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [RunTestAsync] parent of first (test case) task : {op} is set to : {op.ParentTask}");
             op.IsContinuationTask = false;
+            op.LastMoveNextHandled = true;
+            op.TaskGroupID = this.AsyncStateMachineOwnerOperationsList.IndexOf(op.ParentTask);
+            op.IsOwnerSpawnOperation = true;
+            IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [RunTestAsync] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
+            IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [RunTestAsync] parent of first (test case) task : {op} is set to : {op.ParentTask}");
+
+            var spawnTrace = Environment.GetEnvironmentVariable("SPAWN_TRACE");
+            if (spawnTrace == "1")
+            {
+                StackTrace stackTrace = new StackTrace();
+                Console.WriteLine($"--------------------<SPAWN> stackTrace: '{stackTrace}'.");
+                Console.WriteLine($"--------------------<SPAWN> op.Id: {op.Id}, op.Name: {op.Name}, op.ParentTask: {op.ParentTask}");
+            }
+
             var thread = new Thread(() =>
             {
                 try
@@ -324,7 +346,6 @@ namespace Microsoft.Coyote.Runtime
                     ThreadLocalParentAsyncOperation.Value = op;
                     IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [RunTestAsync] [after context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
                     IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [RunTestAsync] set the thread local variable ThreadLocalParentAsyncOperation to : {ThreadLocalParentAsyncOperation.Value}");
-
                     // Update the controlled thread with the currently executing operation,
                     // allowing future retrieval in the same controlled thread.
                     ExecutingOperation.Value = op;
@@ -422,10 +443,26 @@ namespace Microsoft.Coyote.Runtime
 
             TaskOperation op = this.CreateTaskOperation();
 
-            AsyncOperation spawner = ExecutingOperation.Value;
-            op.ParentTask = spawner;
+            // AsyncOperation spawner = ExecutingOperation.Value;
+            this.NumContinuationTasks++;
+            op.ParentTask = null;
             op.IsContinuationTask = true;
+            op.LastMoveNextHandled = true;
+            op.TaskGroupID = -1;
+            op.IsOwnerSpawnOperation = false;
             IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [Schedule] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
+            // List<AsyncOperation> spawneeList = spawner.Spawnees;
+            // spawneeList.Add(op);
+            // TODO: assert op.Spawner!= null
+
+            var contTrace = Environment.GetEnvironmentVariable("CONT_TRACE");
+            if (contTrace == "1")
+            {
+                // Console.WriteLine($"--------------------SCHEDULE-CALLBACK: Method: {callback.Method}, MethodInfo: {callback.GetMethodInfo()}");
+                StackTrace stackTrace = new StackTrace();
+                Console.WriteLine($"--------------------<CONTINUATION> stackTrace: '{stackTrace}'.");
+                Console.WriteLine($"--------------------<CONTINUATION> op.Id: {op.Id}, op.Name: {op.Name}, op.ParentTask: {op.ParentTask}");
+            }
 
             var thread = new Thread(() =>
             {
@@ -437,7 +474,6 @@ namespace Microsoft.Coyote.Runtime
                     // Update the controlled thread with the currently executing operation,
                     // allowing future retrieval in the same controlled thread.
                     ExecutingOperation.Value = op;
-
                     IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [Schedule] [after context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
 
                     this.StartOperation(op);
@@ -474,6 +510,18 @@ namespace Microsoft.Coyote.Runtime
             this.ScheduleNextOperation(AsyncOperationType.Create);
         }
 
+        // internal void RegisterNewAsyncStateMachineIDOnStart()
+        // {
+        //     AsyncOperation currentOperation = this.ScheduledOperation;
+        //     AsyncStateMachineOwnerOperationsList.Add(currentOperation);
+        //     currentOperation.asyncStateMachineID = this.AsyncStateMachineOwnerOperationsList.IndexOf(currentOperation.ParentTask);
+        //     currentOperation.isOwnerSpawnOperation = false;
+
+        // // FN_TODO: run random and test these 2 below assumptions!
+        //     // FN_TODO_1: think that is it gauranteed that this.ScheduledOperation is the correct operation to set here?
+        //     // FN_TODO_1: think is a this.ScheduleNextOperation(currentOperation.Type); i.e. scheduling point call required here
+        // }
+
         internal void SetParentOnMoveNext(AsyncOperation parent)
         {
             if (this.SchedulingPolicy is SchedulingPolicy.Systematic)
@@ -481,6 +529,9 @@ namespace Microsoft.Coyote.Runtime
                 IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [SetParentOnMoveNext] parent: {parent}, thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
                 AsyncOperation currentOperation = this.ScheduledOperation;
                 currentOperation.ParentTask = parent;
+                currentOperation.LastMoveNextHandled = false;
+                currentOperation.TaskGroupID = this.AsyncStateMachineOwnerOperationsList.IndexOf(currentOperation.ParentTask);
+
                 IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [SetParentOnMoveNext] parent of continuation task: {currentOperation} is set to: {currentOperation.ParentTask}");
 
                 if (currentOperation.IsContinuationTask)
@@ -511,12 +562,25 @@ namespace Microsoft.Coyote.Runtime
 
             TaskOperation op = task.AsyncState as TaskOperation ?? this.CreateTaskOperation();
 
-            AsyncOperation spawner = ExecutingOperation.Value; // for spawns the currently executing op is the parent // TODO: think about it, can this also be AsyncLocalParentTask.Value?
-            op.ParentTask = spawner;
-            op.IsContinuationTask = false;
+            // AsyncOperation spawner = ExecutingOperation.Value; // for spawns the currently executing op is the parent // TODO: think about it, can this also be AsyncLocalParentTask.Value?
+            this.NumSpawnTasks++;
 
+            this.AsyncStateMachineOwnerOperationsList.Add(op);
+            op.ParentTask = op;
+            op.IsContinuationTask = false;
+            op.LastMoveNextHandled = true;
+            op.TaskGroupID = this.AsyncStateMachineOwnerOperationsList.IndexOf(op.ParentTask);
+            op.IsOwnerSpawnOperation = true;
             IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [ScheduleTask] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
             IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [ScheduleTask] parent of spawn task : {op} is set to : {op.ParentTask}");
+
+            var spawnTrace = Environment.GetEnvironmentVariable("SPAWN_TRACE");
+            if (spawnTrace == "1")
+            {
+                StackTrace stackTrace = new StackTrace();
+                Console.WriteLine($"--------------------<SPAWN> stackTrace: '{stackTrace}'.");
+                Console.WriteLine($"--------------------<SPAWN> ID: {op.Id}, Name: {op.Name}, Spawner: {op.ParentTask}");
+            }
 
             var thread = new Thread(() =>
             {
@@ -528,7 +592,6 @@ namespace Microsoft.Coyote.Runtime
                     ThreadLocalParentAsyncOperation.Value = op;
                     IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [ScheduleTask] [after context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
                     IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [ScheduleTask] set the thread local variable ThreadLocalParentAsyncOperation to : {ThreadLocalParentAsyncOperation.Value}");
-
                     // Update the controlled thread with the currently executing operation,
                     // allowing future retrieval in the same controlled thread.
                     ExecutingOperation.Value = op;
@@ -604,8 +667,8 @@ namespace Microsoft.Coyote.Runtime
                     },
                     op,
                     cancellationToken,
-                    // this.TaskFactory.CreationOptions | TaskCreationOptions.DenyChildAttach | TaskCreationOptions.RunContinuationsAsynchronously,
-                    this.TaskFactory.CreationOptions | TaskCreationOptions.DenyChildAttach,
+                    this.TaskFactory.CreationOptions | TaskCreationOptions.DenyChildAttach | TaskCreationOptions.RunContinuationsAsynchronously,
+                    // this.TaskFactory.CreationOptions | TaskCreationOptions.DenyChildAttach,
                     this.TaskFactory.Scheduler);
             }
 
@@ -1809,6 +1872,7 @@ namespace Microsoft.Coyote.Runtime
         {
             lock (this.SyncObject)
             {
+                // TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext (by spawn and continuation tasks) to the TestReport
                 report.SetSchedulingStatistics(this.IsBugFound, this.BugReport, this.Scheduler.StepCount,
                     this.Scheduler.IsMaxStepsReached, this.Scheduler.IsScheduleFair);
                 if (this.IsBugFound)
