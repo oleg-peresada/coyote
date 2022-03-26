@@ -97,10 +97,6 @@ namespace Microsoft.Coyote.Testing.Systematic
 
         private int ContextSwitchNumber;
 
-        // private readonly int EnabledSpawneesCountMax = 0;
-
-        // private int ActualNumberOfPrioritySwitches = 0;
-
         private readonly Dictionary<AsyncOperation, AsyncStateMachineTaskOperationsGroup> AsyncOperationToOperationsGroupMap;
 
         private AsyncStateMachineTaskOperationsGroup NonAsyncStateMachineOperationGroup;
@@ -156,8 +152,6 @@ namespace Microsoft.Coyote.Testing.Systematic
             this.MaxPrioritySwitchPoints = maxPrioritySwitchPoints;
             this.PriorityChangePoints = new HashSet<int>();
             this.ContextSwitchNumber = 0;
-            // this.EnabledSpawneesCountMax = 0;
-            // this.ActualNumberOfPrioritySwitches = 0;
             this.AsyncOperationToOperationsGroupMap = new Dictionary<AsyncOperation, AsyncStateMachineTaskOperationsGroup>();
             // this.NonAsyncStateMachineOperationGroup = new AsyncStateMachineTaskOperationsGroup();
             this.PrioritizedOperations = new List<AsyncStateMachineTaskOperationsGroup>();
@@ -193,10 +187,6 @@ namespace Microsoft.Coyote.Testing.Systematic
                     double power = Math.Pow(k, d - 1);
                     double denominator = n * power;
                     double theoreticalProbability = 1 / denominator;
-                    // Console.WriteLine($"        <PCTLog> power = {power}, denominator = {denominator}");
-                    // Console.WriteLine($"        <PCTLog> this.PrioritizedOperations.Count: N = {n}");
-                    // Console.WriteLine($"        <PCTLog> this.MaxPrioritySwitchPoints: D = {d}");
-                    // Console.WriteLine($"        <PCTLog> this.StepCount: K = {k}");
                     Console.WriteLine($"        <PCTLog> N = {n}, D = {d}, K = {k}");
                     Console.WriteLine($"        <PCTLog> Theoretical-Probability : {theoreticalProbability}");
                     Console.WriteLine();
@@ -214,7 +204,6 @@ namespace Microsoft.Coyote.Testing.Systematic
 
                 this.ContextSwitchNumber = 0;
                 this.ContextSwitchNumber = 0;
-                // this.ActualNumberOfPrioritySwitches = 0;
 
                 this.PriorityChangePoints.Clear();
 
@@ -349,11 +338,6 @@ namespace Microsoft.Coyote.Testing.Systematic
         {
             Console.WriteLine($"          next = {next}");
             Console.WriteLine($"     <TaskSummaryLog> Scheduled: {next}");
-            // Console.WriteLine();
-            // Console.WriteLine();
-            // Console.WriteLine();
-            // Console.WriteLine();
-            // Console.WriteLine();
         }
 
         /// <inheritdoc/>
@@ -377,101 +361,9 @@ namespace Microsoft.Coyote.Testing.Systematic
             next = enabledOps.First(op => op.Equals(highestEnabledOperation));
             Console.WriteLine("<PCTLog> next operation scheduled is: '{0}'.", next);
             this.StepCount++;
-
-            // string envPrintEnabledChildrenDepth = Environment.GetEnvironmentVariable("MYCOYOTE_PRINT_MAX_ENABLED_CHILDS"); // NOTE: OLP_TEST_PCT_SWITCHES muse be a positive integer.
-            // bool envPrintEnabledChildrenDepthBool = false;
-            // if (envPrintEnabledChildrenDepth != null)
-            // {
-            //     envPrintEnabledChildrenDepthBool = bool.Parse(envPrintEnabledChildrenDepth);
-            // }
-
-            // if (envPrintEnabledChildrenDepthBool)
-            // {
-            //     this.DebugPrintMaxEnabledSpawneeDepth(enabledOps);
-            // }
-
             this.DebugPrintBeforeGetNextOperation(ops);
             return true;
         }
-
-        // FN_TODO: test and add capability to change the priority for parent and all its children as well also randomization inside the chains
-        // private int GiveCorrectIndexAfterPrioritInheritanceForOperation(AsyncOperation operation)
-        // {
-        //     int index = 0;
-        //     // int beginIndex = 0;
-        //     // int endIndex = this.PrioritizedOperations.Count;
-        //     // foreach (var opp in this.PrioritizedOperations)
-        //     // {
-        //     //     if (opp.ParentTask == operation.ParentTask || opp == operation.ParentTask)
-        //     //     {
-        //     //         beginIndex = this.PrioritizedOperations.IndexOf(opp);
-        //     //         break;
-        //     //     }
-        //     // }
-
-        // // foreach (var opp in this.PrioritizedOperations)
-        //     // {
-        //     //     if (opp.ParentTask == operation.ParentTask || opp == operation.ParentTask)
-        //     //     {
-        //     //         endIndex = this.PrioritizedOperations.IndexOf(opp);
-        //     //     }
-        //     // }
-
-        // // if (beginIndex == endIndex)
-        //     // {
-        //     //     index = beginIndex + this.RandomValueGenerator.Next(1);
-        //     // }
-        //     // else
-        //     // {
-        //     //     index = beginIndex + this.RandomValueGenerator.Next(endIndex - beginIndex + 1); // FN_TODO: maybe fix the bug
-        //     // }
-
-        // // if (index < 0)
-        //     // {
-        //     //     index = 0;
-        //     // }
-
-        // // if (index > this.PrioritizedOperations.Count)
-        //     // {
-        //     //     index = this.PrioritizedOperations.Count;
-        //     // }
-
-        // index = this.PrioritizedOperations.IndexOf(operation.ParentTask) + 1;
-        //     // index = this.PrioritizedOperations.IndexOf(op.Spawner) + 1;
-        //     return index;
-        // }
-
-        // private void fixUnhandledMoveNextPriorities()
-        // {
-        //     // string envNewPCT = Environment.GetEnvironmentVariable("MYCOYOTE_NEW_PCT"); // NOTE: MYCOYOTE_NEW_PCT must be a either 0 or 1.
-        //     // bool envNewPCTBool = false;
-        //     // if (envNewPCT != null)
-        //     // {
-        //     //     envNewPCTBool = bool.Parse(envNewPCT);
-        //     // }
-
-        // // Fix the priorities of all the operations which have an unhandled MoveNext call
-        //     foreach (var op in this.AllRegisteredOperations.Where(op => !op.LastMoveNextHandled))
-        //     {
-        //         this.InsertAsyncOperationIntoOperationGroup(op);
-        //         // if (envNewPCTBool)
-        //         // {
-        //             // int index = GiveCorrectIndexAfterPrioritInheritanceForOperation(op);
-        //             // op.lastMoveNextPriorityAdjusted = true;
-        //             // this.PrioritizedOperations.Insert(index, op);
-        //             // Console.WriteLine("<PCTLog> Adjusted priority to '{0}' for operation '{1}' after calling a MoveNext.", index, op.Name);
-        //             // if (op.IsContinuationTask)
-        //             // {
-        //             //     IO.Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] CASE3: priority of OLD continuation task: {op} is adjusted to: {index}");
-        //             // }
-        //             // else
-        //             // {
-        //             //     IO.Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] CASE3: priority of OLD spawn task: {op} is adjusted to: {index}");
-        //             // }
-        //         // }
-
-        // }
-        // }
 
         // FN_TODO: put more assertions to cover corner cases if possible
         private void InsertAsyncOperationIntoOperationGroup(AsyncOperation asyncOp)
@@ -535,55 +427,9 @@ namespace Microsoft.Coyote.Testing.Systematic
                 this.AllRegisteredOperations.Add(current);
             }
 
-            // string envNewPCT = Environment.GetEnvironmentVariable("MYCOYOTE_NEW_PCT"); // NOTE: MYCOYOTE_NEW_PCT must be a either 0 or 1.
-            // bool envNewPCTBool = false;
-            // if (envNewPCT != null)
-            // {
-            //     envNewPCTBool = bool.Parse(envNewPCT);
-            // }
-
             // Randomize the priority of all new operations.
             foreach (var op in ops.Where(op => !this.AllRegisteredOperations.Contains(op)))
             {
-                // int index = 0;
-                // if (!envNewPCTBool)
-                // {
-                //     index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
-                // }
-                // else
-                // {
-                //     // FN_TODO: think of cases with mix of tasks, actors, threads, etc where op might not be be aof type TaskOperation
-                //     if (op.lastMoveNextPriorityAdjusted)
-                //     {
-                //         // Randomly choose a priority for this operation since it is a new operation which does not have unhandled MoveNext call
-                //         index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
-                //         if (op.IsContinuationTask)
-                //         {
-                //             IO.Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] CASE1: priority of NEW continuation task: {op} is set to: {index}");
-                //         }
-                //         else
-                //         {
-                //             IO.Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] CASE1: priority of NEW spawn task: {op} is set to: {index}");
-                //         }
-                //     }
-                //     else
-                //     {
-                //         index = GiveCorrectIndexAfterPrioritInheritanceForOperation(op);
-                //         op.lastMoveNextPriorityAdjusted = true;
-                //         if (op.IsContinuationTask)
-                //         {
-                //             IO.Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] CASE2: priority of NEW continuation task: {op} is adjusted to: {index}");
-                //         }
-                //         else
-                //         {
-                //             IO.Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] CASE2: priority of NEW spawn task: {op} is adjusted to: {index}");
-                //         }
-                //     }
-                // }
-
-                // this.PrioritizedOperations.Insert(index, op);
-                // Console.WriteLine("<PCTLog> chose priority '{0}' for new operation '{1}'.", index, op.Name);
-
                 this.AllRegisteredOperations.Add(op);
                 if (op.IsContinuationTask)
                 {
@@ -610,30 +456,7 @@ namespace Microsoft.Coyote.Testing.Systematic
 
                 this.InsertAsyncOperationIntoOperationGroup(op);
             }
-
-            // fixUnhandledMoveNextPriorities();
         }
-
-        // private void DebugPrintMaxEnabledSpawneeDepth(List<AsyncOperation> enabledOps)
-        // {
-        //     foreach (var op in this.PrioritizedOperations)
-        //     {
-        //         int enabledSpawneesCount = 0;
-        //         foreach (var spawnee in op.Spawnees.Where(spawnee => enabledOps.Contains(spawnee)))
-        //         {
-        //             enabledSpawneesCount++;
-        //         }
-
-        // if (this.EnabledSpawneesCountMax < enabledSpawneesCount)
-        //         {
-        //             this.EnabledSpawneesCountMax = enabledSpawneesCount;
-        //             string folder = @"C:\Users\t-fnayyar\Desktop\repos\olp-buggy-branches\";
-        //             string fileName = "maxEnabledChildDepth.txt";
-        //             string fullPath = folder + fileName;
-        //             File.WriteAllText(fullPath, $"{this.EnabledSpawneesCountMax} \n");
-        //         }
-        //     }
-        // }
 
         /// <summary>
         /// Deprioritizes the enabled operation with the highest priority, if there is a
@@ -665,63 +488,9 @@ namespace Microsoft.Coyote.Testing.Systematic
 
             if (deprioritizedOperation != null)
             {
-                // string envNewPCT = Environment.GetEnvironmentVariable("MYCOYOTE_NEW_PCT"); // NOTE: MYCOYOTE_NEW_PCT must be a either 0 or 1.
-                // bool envNewPCTBool = false;
-                // if (envNewPCT != null)
-                // {
-                //     envNewPCTBool = bool.Parse(envNewPCT);
-                // }
-
-                // if (!envNewPCTBool)
-                // {
-                    // Deprioritize the operation by putting it in the end of the list.
+                // Deprioritize the operation by putting it in the end of the list.
                 this.PrioritizedOperations.Remove(this.AsyncOperationToOperationsGroupMap[deprioritizedOperation]);
                 this.PrioritizedOperations.Add(this.AsyncOperationToOperationsGroupMap[deprioritizedOperation]);
-                // }
-                // else
-                // {
-                //     string envPrintNumOfPrioritySwtichPoints = Environment.GetEnvironmentVariable("MYCOYOTE_PRINT_PRIORITY_SWITCHES"); // NOTE: OLP_TEST_PCT_SWITCHES muse be a positive integer.
-                //     bool envPrintNumOfPrioritySwtichPointsBool = false;
-                //     if (envPrintNumOfPrioritySwtichPoints != null)
-                //     {
-                //         envPrintNumOfPrioritySwtichPointsBool = bool.Parse(envPrintNumOfPrioritySwtichPoints);
-                //     }
-
-                // if (envPrintNumOfPrioritySwtichPointsBool)
-                //     {
-                //         this.ActualNumberOfPrioritySwitches++;
-                //         string folder = @"C:\Users\t-fnayyar\Desktop\repos\olp-buggy-branches\";
-                //         string fileName = "ActualNumberOfPrioritySwitches.txt";
-                //         string fullPath = folder + fileName;
-                //         File.WriteAllText(fullPath, $"{this.ActualNumberOfPrioritySwitches} \n");
-                //     }
-
-                // // Deprioritize the operation by putting it in the end of the list.
-
-                // /*this.PrioritizedOperations.Remove(deprioritizedOperation);
-                //     this.PrioritizedOperations.Add(deprioritizedOperation);
-                //     foreach (AsyncOperation spawnee in deprioritizedOperation.Spawnees)
-                //     {
-                //         this.PrioritizedOperations.Remove(spawnee);
-                //         this.PrioritizedOperations.Add(spawnee);
-                //     }*/
-
-                // LinkedList<AsyncOperation> toDeprioratize = new LinkedList<AsyncOperation>();
-                //     foreach (AsyncOperation aop in this.PrioritizedOperations)
-                //     {
-                //         // deprioratize all the children (spanwnees), siblings and parent.
-                //         if (aop == deprioritizedOperation || deprioritizedOperation.Spawnees.Contains(aop) || aop.ParentTask == deprioritizedOperation.ParentTask || aop == deprioritizedOperation.ParentTask)
-                //         {
-                //             toDeprioratize.AddLast(aop);
-                //         }
-                //     }
-
-                // foreach (AsyncOperation aop in toDeprioratize)
-                //     {
-                //         this.PrioritizedOperations.Remove(aop);
-                //         this.PrioritizedOperations.Add(aop);
-                //     }
-                // }
             }
         }
 
