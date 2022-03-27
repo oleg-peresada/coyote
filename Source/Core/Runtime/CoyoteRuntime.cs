@@ -197,6 +197,10 @@ namespace Microsoft.Coyote.Runtime
 
         public int NumContinuationTasks;
 
+        public int NumDelayTasks;
+
+        public int NumOfMoveNext;
+
         /// <summary>
         /// True if a bug was found, else false.
         /// </summary>
@@ -443,8 +447,10 @@ namespace Microsoft.Coyote.Runtime
 
             TaskOperation op = this.CreateTaskOperation();
 
+            // FN_TODO: make sure that this schedule() method is called only by continuation tasks
             // AsyncOperation spawner = ExecutingOperation.Value;
             this.NumContinuationTasks++;
+
             op.ParentTask = null;
             op.IsContinuationTask = true;
             op.LastMoveNextHandled = true;
@@ -526,6 +532,7 @@ namespace Microsoft.Coyote.Runtime
         {
             if (this.SchedulingPolicy is SchedulingPolicy.Systematic)
             {
+                this.NumOfMoveNext++;
                 IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [SetParentOnMoveNext] parent: {parent}, thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
                 AsyncOperation currentOperation = this.ScheduledOperation;
                 currentOperation.ParentTask = parent;
@@ -562,24 +569,49 @@ namespace Microsoft.Coyote.Runtime
 
             TaskOperation op = task.AsyncState as TaskOperation ?? this.CreateTaskOperation();
 
-            // AsyncOperation spawner = ExecutingOperation.Value; // for spawns the currently executing op is the parent // TODO: think about it, can this also be AsyncLocalParentTask.Value?
-            this.NumSpawnTasks++;
+            // FN_TODO: make sure that this scheduleTask() method is called only by owner operation of a chain of async state machines
 
-            this.AsyncStateMachineOwnerOperationsList.Add(op);
-            op.ParentTask = op;
-            op.IsContinuationTask = false;
-            op.LastMoveNextHandled = true;
-            op.TaskGroupID = this.AsyncStateMachineOwnerOperationsList.IndexOf(op.ParentTask);
-            op.IsOwnerSpawnOperation = true;
-            IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [ScheduleTask] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
-            IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [ScheduleTask] parent of spawn task : {op} is set to : {op.ParentTask}");
-
-            var spawnTrace = Environment.GetEnvironmentVariable("SPAWN_TRACE");
-            if (spawnTrace == "1")
+            if (!op.Name.Contains("Delay"))
             {
-                StackTrace stackTrace = new StackTrace();
-                Console.WriteLine($"--------------------<SPAWN> stackTrace: '{stackTrace}'.");
-                Console.WriteLine($"--------------------<SPAWN> ID: {op.Id}, Name: {op.Name}, Spawner: {op.ParentTask}");
+                // AsyncOperation spawner = ExecutingOperation.Value; // for spawns the currently executing op is the parent // TODO: think about it, can this also be AsyncLocalParentTask.Value?
+                this.NumSpawnTasks++;
+
+                this.AsyncStateMachineOwnerOperationsList.Add(op);
+                op.ParentTask = op;
+                op.IsContinuationTask = false;
+                op.LastMoveNextHandled = true;
+                op.TaskGroupID = this.AsyncStateMachineOwnerOperationsList.IndexOf(op.ParentTask);
+                op.IsOwnerSpawnOperation = true;
+                IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [ScheduleTask] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
+                IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [ScheduleTask] parent of spawn task : {op} is set to : {op.ParentTask}");
+
+                var spawnTrace = Environment.GetEnvironmentVariable("SPAWN_TRACE");
+                if (spawnTrace == "1")
+                {
+                    StackTrace stackTrace = new StackTrace();
+                    Console.WriteLine($"--------------------<SPAWN> stackTrace: '{stackTrace}'.");
+                    Console.WriteLine($"--------------------<SPAWN> ID: {op.Id}, Name: {op.Name}, Spawner: {op.ParentTask}");
+                }
+            }
+            else
+            {
+                this.NumDelayTasks++;
+
+                op.ParentTask = null;
+                op.IsContinuationTask = false;
+                op.LastMoveNextHandled = true;
+                op.TaskGroupID = -1;
+                op.IsOwnerSpawnOperation = false;
+                IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [RunTestAsync] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
+                IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [RunTestAsync] parent of delay task : {op} is set to : null.");
+
+                var delayTrace = Environment.GetEnvironmentVariable("DELAY_TRACE");
+                if (delayTrace == "1")
+                {
+                    StackTrace stackTrace = new StackTrace();
+                    Console.WriteLine($"--------------------<SPAWN> stackTrace: '{stackTrace}'.");
+                    Console.WriteLine($"--------------------<SPAWN> op.Id: {op.Id}, op.Name: {op.Name}, op.ParentTask: null");
+                }
             }
 
             var thread = new Thread(() =>
@@ -658,6 +690,9 @@ namespace Microsoft.Coyote.Runtime
 
                 // TODO: cache the dummy delay action to optimize memory.
                 TaskOperation op = this.CreateTaskOperation(timeout);
+
+                // FN_TODO: should we set some metadata in the AsyncOperation for delays here
+
                 return this.TaskFactory.StartNew(
                     state =>
                     {
@@ -1872,7 +1907,7 @@ namespace Microsoft.Coyote.Runtime
         {
             lock (this.SyncObject)
             {
-                // TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext (by spawn and continuation tasks) to the TestReport
+                // TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext, numDelayTasks (by spawn and continuation tasks) to the TestReport
                 report.SetSchedulingStatistics(this.IsBugFound, this.BugReport, this.Scheduler.StepCount,
                     this.Scheduler.IsMaxStepsReached, this.Scheduler.IsScheduleFair);
                 if (this.IsBugFound)

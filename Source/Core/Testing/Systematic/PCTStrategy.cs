@@ -39,6 +39,11 @@ namespace Microsoft.Coyote.Testing.Systematic
                 this.OperationsChain.Add(parentOperation);
             }
 
+            internal int GetTaskGroupID()
+            {
+                return this.TaskGroupID;
+            }
+
             internal AsyncOperation GetOwnerOperation()
             {
                 return this.OwnerOperation;
@@ -47,12 +52,20 @@ namespace Microsoft.Coyote.Testing.Systematic
             internal void InsertOperation(AsyncOperation newOperation)
             {
                 // FN_TODO: think, is this randomization required?
-                int index = this.RandomValueGenerator.Next(this.OperationsChain.Count) + 1;
-                this.OperationsChain.Insert(index, newOperation);
+                if (this.OperationsChain.Count == 0)
+                {
+                    this.OperationsChain.Add(newOperation);
+                }
+                else
+                {
+                    int index = this.RandomValueGenerator.Next(this.OperationsChain.Count) + 1;
+                    this.OperationsChain.Insert(index, newOperation);
+                }
             }
 
             internal void RemoveOperation(AsyncOperation operationToRemove)
             {
+                // FN_TODO: add logic to prevent removing of OwnerOperation. OwnerOperation is always present in the operation chain.
                 Specification.Assert(this.OperationsChain.Contains(operationToRemove), $"     ===========<IMP_AsyncStateMachineTaskOperationsGroup-ERROR> [RemoveOperation] removing non present opeation from chain of owner : {this.OwnerOperation}");
                 this.OperationsChain.Remove(operationToRemove);
             }
@@ -95,7 +108,9 @@ namespace Microsoft.Coyote.Testing.Systematic
             }
         }
 
-        private int ContextSwitchNumber;
+        private int ContextSwitchNumber = 0;
+
+        private int ActualNumberOfPrioritySwitches = 0;
 
         private readonly Dictionary<AsyncOperation, AsyncStateMachineTaskOperationsGroup> AsyncOperationToOperationsGroupMap;
 
@@ -152,11 +167,22 @@ namespace Microsoft.Coyote.Testing.Systematic
             this.MaxPrioritySwitchPoints = maxPrioritySwitchPoints;
             this.PriorityChangePoints = new HashSet<int>();
             this.ContextSwitchNumber = 0;
+            this.ActualNumberOfPrioritySwitches = 0;
             this.AsyncOperationToOperationsGroupMap = new Dictionary<AsyncOperation, AsyncStateMachineTaskOperationsGroup>();
             // this.NonAsyncStateMachineOperationGroup = new AsyncStateMachineTaskOperationsGroup();
             this.PrioritizedOperations = new List<AsyncStateMachineTaskOperationsGroup>();
             this.AllRegisteredOperations = new List<AsyncOperation>();
             this.RegisteredOps = new HashSet<AsyncOperation>();
+        }
+
+        internal void PrintTaskPCTStatsForIteration(uint iteration)
+        {
+            Debug.WriteLine(string.Empty);
+            Debug.WriteLine($"===========<IMP_PCTStrategy> [PrintTaskPCTStatsForIteration] TASK-PCT STATS for ITERATION: {iteration}");
+            Debug.WriteLine($"                  TOTAL ASYNC OPS: {this.AllRegisteredOperations.Count}");
+            Debug.WriteLine($"                  TOTAL ASYNC OP GROUPS (#PRIORITIES): {this.PrioritizedOperations.Count}");
+            Debug.WriteLine($"                  #PRIORITY_SWITCHES: {this.ActualNumberOfPrioritySwitches}");
+            this.DebugPrintOperationPriorityList();
         }
 
         /// <inheritdoc/>
@@ -168,29 +194,43 @@ namespace Microsoft.Coyote.Testing.Systematic
             // plus its also interesting to explore a schedule with no forced priority switch points.
             if (iteration > 0)
             {
+                // FN_TODO: print the stat for the last iteration also
+                this.PrintTaskPCTStatsForIteration(iteration - 1);
+
                 // FN_TODO: review an fix this code for new impl now
-                string envPCTProbability = Environment.GetEnvironmentVariable("MYCOYOTE_PCT_PROB"); // NOTE: MYCOYOTE_NEW_PCT must be a either 0 or 1.
+               /* string envPCTProbability = Environment.GetEnvironmentVariable("MYCOYOTE_PCT_PROB"); // NOTE: MYCOYOTE_NEW_PCT must be a either 0 or 1.
                 bool envPCTProbabilityBool = false;
                 if (envPCTProbability != null)
                 {
                     envPCTProbabilityBool = bool.Parse(envPCTProbability);
-                }
+                }*/
 
-                if (envPCTProbabilityBool)
-                {
-                    Console.WriteLine();
-                    Console.WriteLine($"        <PCTLog> Iteration : {iteration}");
-                    int n = this.PrioritizedOperations.Count; // FN_TODO
-                    // int n = this.AllRegisteredOperations.Count; // FN_TODO
-                    int d = this.MaxPrioritySwitchPoints;
-                    int k = this.StepCount;
-                    double power = Math.Pow(k, d - 1);
-                    double denominator = n * power;
-                    double theoreticalProbability = 1 / denominator;
-                    Console.WriteLine($"        <PCTLog> N = {n}, D = {d}, K = {k}");
-                    Console.WriteLine($"        <PCTLog> Theoretical-Probability : {theoreticalProbability}");
-                    Console.WriteLine();
-                }
+                /*if (envPCTProbabilityBool)
+                {*/
+                Debug.WriteLine(string.Empty);
+                Debug.WriteLine($"===========<IMP_PCTStrategy> PROBABILITY STATS for ITERATION: {iteration - 1}");
+
+                int n_theory = this.AllRegisteredOperations.Count; // FN_TODO : think are we measuring corrent parameters for probabilities?
+                int d_theory = this.MaxPrioritySwitchPoints;
+                int k_theory = this.StepCount;
+                double power_theory = Math.Pow(k_theory, d_theory - 1);
+                double denominator_theory = n_theory * power_theory;
+                double theoreticalProbability_theory = 1 / denominator_theory;
+                Debug.WriteLine($"                    N_th = {n_theory}, D_th = {d_theory}, K_th = {k_theory}");
+                Debug.WriteLine($"                    Theoretical-Probability : {theoreticalProbability_theory}");
+                Debug.WriteLine(string.Empty);
+
+                int n_actual = this.PrioritizedOperations.Count; // FN_TODO : think are we measuring corrent parameters for probabilities?
+                // int d_actual = this.ActualNumberOfPrioritySwitches;
+                int d_actual = d_theory;
+                int k_actual = k_theory;
+                double power_actual = Math.Pow(k_actual, d_actual - 1);
+                double denominator_actual = n_actual * power_actual;
+                double theoreticalProbability_actual = 1 / denominator_actual;
+                Debug.WriteLine($"                  N_pr = {n_actual}, D_pr = {d_actual}, K_pr = {k_actual}");
+                Debug.WriteLine($"                    Practical-Probability : {theoreticalProbability_actual}");
+                Debug.WriteLine(string.Empty);
+                /*}*/
 
                 this.ScheduleLength = Math.Max(this.ScheduleLength, this.StepCount);
                 this.StepCount = 0;
@@ -203,7 +243,7 @@ namespace Microsoft.Coyote.Testing.Systematic
                 this.RegisteredOps.Clear();
 
                 this.ContextSwitchNumber = 0;
-                this.ContextSwitchNumber = 0;
+                this.ActualNumberOfPrioritySwitches = 0;
 
                 this.PriorityChangePoints.Clear();
 
@@ -223,57 +263,57 @@ namespace Microsoft.Coyote.Testing.Systematic
         {
             this.ContextSwitchNumber += 1;
             var ops = opss.ToList();
-            Console.WriteLine($"          ops.Count = {ops.Count}");
+            Debug.WriteLine($"          ops.Count = {ops.Count}");
             int countt = 0;
             foreach (var op in ops)
             {
                 if (countt == 0)
                 {
-                    Console.Write($"          {op}");
+                    Debug.Write($"          {op}");
                 }
                 else
                 {
-                    Console.Write($", {op}");
+                    Debug.Write($", {op}");
                 }
 
                 countt++;
             }
 
-            Console.WriteLine();
+            Debug.WriteLine(string.Empty);
 
             countt = 0;
             foreach (var op in ops)
             {
                 if (countt == 0)
                 {
-                    Console.Write($"          {op.Status}");
+                    Debug.Write($"          {op.Status}");
                 }
                 else
                 {
-                    Console.Write($", {op.Status}");
+                    Debug.Write($", {op.Status}");
                 }
 
                 countt++;
             }
 
-            Console.WriteLine();
+            Debug.WriteLine(string.Empty);
 
             countt = 0;
             foreach (var op in ops)
             {
                 if (countt == 0)
                 {
-                    Console.Write($"          {op.Type}");
+                    Debug.Write($"          {op.Type}");
                 }
                 else
                 {
-                    Console.Write($", {op.Type}");
+                    Debug.Write($", {op.Type}");
                 }
 
                 countt++;
             }
 
-            Console.WriteLine();
+            Debug.WriteLine(string.Empty);
 
             HashSet<AsyncOperation> newConcurrentOps = new HashSet<AsyncOperation>();
             foreach (var op in ops)
@@ -285,7 +325,7 @@ namespace Microsoft.Coyote.Testing.Systematic
                 }
             }
 
-            Console.WriteLine($"          # new operations added {newConcurrentOps.Count}");
+            Debug.WriteLine($"          # new operations added {newConcurrentOps.Count}");
             Specification.Assert((newConcurrentOps.Count <= 1) || (newConcurrentOps.Count == 2 && this.ContextSwitchNumber == 1),
                 $"     <TaskSummaryLog-ERROR> At most one new operation must be added across context switch.");
 
@@ -293,22 +333,22 @@ namespace Microsoft.Coyote.Testing.Systematic
 
             if (newConcurrentOps.Count == 0)
             {
-                Console.WriteLine($"     <TaskSummaryLog> T-case 1.): No new task added.");
+                Debug.WriteLine($"     <TaskSummaryLog> T-case 1.): No new task added.");
                 cases = 1;
             }
 
             foreach (var op in newConcurrentOps)
             {
-                Console.WriteLine($"          newConcurrentOps: {op}, Spawner: {op.ParentTask}");
+                Debug.WriteLine($"          newConcurrentOps: {op}, Spawner: {op.ParentTask}");
                 if (op.IsContinuationTask)
                 {
                     if (op.ParentTask == null)
                     {
-                        Console.WriteLine($"     <TaskSummaryLog> T-case 3.): Continuation task {op} (id = {op.Id}) is the first task to be created!");
+                        Debug.WriteLine($"     <TaskSummaryLog> T-case 3.): Continuation task {op} (id = {op.Id}) is the first task to be created!");
                     }
                     else
                     {
-                        Console.WriteLine($"     <TaskSummaryLog> T-case 3.): Continuation task {op} (id = {op.Id}) created by {op.ParentTask} (id = {op.ParentTask.Id}).");
+                        Debug.WriteLine($"     <TaskSummaryLog> T-case 3.): Continuation task {op} (id = {op.Id}) created by {op.ParentTask} (id = {op.ParentTask.Id}).");
                     }
 
                     cases = 3;
@@ -317,11 +357,11 @@ namespace Microsoft.Coyote.Testing.Systematic
                 {
                     if (op.ParentTask == null)
                     {
-                        Console.WriteLine($"     <TaskSummaryLog> T-case 2.): Spawn task {op} (id = {op.Id}) is the first task to be created!");
+                        Debug.WriteLine($"     <TaskSummaryLog> T-case 2.): Spawn task {op} (id = {op.Id}) is the first task to be created!");
                     }
                     else
                     {
-                        Console.WriteLine($"     <TaskSummaryLog> T-case 2.): Spawn task {op} (id = {op.Id}) created by {op.ParentTask} (id = {op.ParentTask.Id}).");
+                        Debug.WriteLine($"     <TaskSummaryLog> T-case 2.): Spawn task {op} (id = {op.Id}) created by {op.ParentTask} (id = {op.ParentTask.Id}).");
                     }
 
                     cases = 2;
@@ -331,13 +371,13 @@ namespace Microsoft.Coyote.Testing.Systematic
             Specification.Assert( (cases == 1) || (cases == 2) || (cases == 3),
                 $"     <TaskSummaryLog-ERROR> At most one new operation must be added across context switch.");
 
-            // Console.WriteLine();
+            // Debug.WriteLine();
         }
 
         private static void DebugPrintAfterGetNextOperation(AsyncOperation next)
         {
-            Console.WriteLine($"          next = {next}");
-            Console.WriteLine($"     <TaskSummaryLog> Scheduled: {next}");
+            Debug.WriteLine($"          next = {next}");
+            Debug.WriteLine($"     <TaskSummaryLog> Scheduled: {next}");
         }
 
         /// <inheritdoc/>
@@ -359,31 +399,41 @@ namespace Microsoft.Coyote.Testing.Systematic
 
             AsyncOperation highestEnabledOperation = this.GetEnabledOperationWithHighestPriority(enabledOps);
             next = enabledOps.First(op => op.Equals(highestEnabledOperation));
-            Console.WriteLine("<PCTLog> next operation scheduled is: '{0}'.", next);
+            Debug.WriteLine("<PCTLog> next operation scheduled is: '{0}'.", next);
+            Debug.WriteLine($"===========<IMP_PCTStrategy> [GetNextOperation] NEXT operation to be scheduled: {next}.");
             this.StepCount++;
             this.DebugPrintBeforeGetNextOperation(ops);
             return true;
         }
 
         // FN_TODO: put more assertions to cover corner cases if possible
-        private void InsertAsyncOperationIntoOperationGroup(AsyncOperation asyncOp)
+        private void InsertNewAsyncOperationIntoOperationGroup(AsyncOperation asyncOp)
         {
+            // FN_IMP_TODO: operations in the this.NonAsyncStateMachineOperationGroup can also get different priorities and be deprioratized.
             if (asyncOp.TaskGroupID == -1)
             {
                 if (this.NonAsyncStateMachineOperationGroup == null)
                 {
                     this.NonAsyncStateMachineOperationGroup = new AsyncStateMachineTaskOperationsGroup(asyncOp, this.RandomValueGenerator);
-                    int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
-                    this.PrioritizedOperations.Insert(index, this.NonAsyncStateMachineOperationGroup);
-                    this.NonAsyncStateMachineOperationGroup.InsertOperation(asyncOp);
+                    if (this.PrioritizedOperations.Count == 0)
+                    {
+                        this.PrioritizedOperations.Add(this.NonAsyncStateMachineOperationGroup);
+                        Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted [FIRST] delay/non-task asyncOp: {asyncOp} into new NonAsyncStateMachineOperationGroup with priority: 0");
+                    }
+                    else
+                    {
+                        int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
+                        this.PrioritizedOperations.Insert(index, this.NonAsyncStateMachineOperationGroup);
+                        Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted delay/non-task asyncOp: {asyncOp} into new NonAsyncStateMachineOperationGroup with priority: {index}");
+                    }
+
                     this.AsyncOperationToOperationsGroupMap.Add(asyncOp, this.NonAsyncStateMachineOperationGroup);
-                    Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_1: inserted owner asyncOp: {asyncOp} into new NonAsyncStateMachineOperationGroup.");
                 }
                 else
                 {
                     this.NonAsyncStateMachineOperationGroup.InsertOperation(asyncOp);
                     this.AsyncOperationToOperationsGroupMap.Add(asyncOp, this.NonAsyncStateMachineOperationGroup);
-                    Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_2: inserted owner asyncOp: {asyncOp} into old NonAsyncStateMachineOperationGroup.");
+                    Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted delay/non-task owner asyncOp: {asyncOp} into old NonAsyncStateMachineOperationGroup which has priority: {this.PrioritizedOperations.IndexOf(this.NonAsyncStateMachineOperationGroup)}");
                 }
             }
             else
@@ -392,28 +442,43 @@ namespace Microsoft.Coyote.Testing.Systematic
                 if (asyncOp.IsOwnerSpawnOperation)
                 {
                     AsyncStateMachineTaskOperationsGroup newOperationGroup = new AsyncStateMachineTaskOperationsGroup(asyncOp, this.RandomValueGenerator);
-                    int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
-                    this.PrioritizedOperations.Insert(index, newOperationGroup);
+                    if (this.PrioritizedOperations.Count == 0)
+                    {
+                        this.PrioritizedOperations.Add(newOperationGroup);
+                        Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_1: inserted [FIRST] owner asyncOp: {asyncOp} into a new chain with priority: 0");
+                    }
+                    else
+                    {
+                        int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
+                        this.PrioritizedOperations.Insert(index, newOperationGroup);
+                        Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_1: inserted owner asyncOp: {asyncOp} into a new chain with priority: {index}");
+                    }
+
                     this.AsyncOperationToOperationsGroupMap.Add(asyncOp, newOperationGroup);
                     // asyncOp.IsOwnerSpawnOperation = true;
-                    Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted owner asyncOp: {asyncOp} into a new chain.");
-                }
-                else if (!asyncOp.LastMoveNextHandled)
-                {
-                    Specification.Assert(asyncOp.ParentTask != null, $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] asyncOp.ParentTask != null.");
-                    this.AsyncOperationToOperationsGroupMap[asyncOp].RemoveOperation(asyncOp);
-                    AsyncOperation oldChainOwner = this.AsyncOperationToOperationsGroupMap[asyncOp].GetOwnerOperation(); // for DEBUGGING
-                    this.AsyncOperationToOperationsGroupMap[asyncOp.ParentTask].InsertOperation(asyncOp);
-                    AsyncOperation newChainOwner = this.AsyncOperationToOperationsGroupMap[asyncOp.ParentTask].GetOwnerOperation(); // for DEBUGGING
-                    this.AsyncOperationToOperationsGroupMap.Add(asyncOp, this.AsyncOperationToOperationsGroupMap[asyncOp.ParentTask]);
-                    asyncOp.LastMoveNextHandled = true;
-                    Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: moved asyncOp: {asyncOp} from old chain of {oldChainOwner} to new chain of {newChainOwner}.");
                 }
                 else
                 {
                     Specification.Assert(false, $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] unreachable CASE_4 touched.");
                 }
             }
+
+            // FN_TODO: maybe later comment it to reduce log size.
+            this.DebugPrintOperationPriorityList();
+        }
+
+        private void InsertAsyncOperationIntoOperationGroupOnMoveNext(AsyncOperation asyncOp)
+        {
+            Specification.Assert(asyncOp.ParentTask != null, $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] asyncOp.ParentTask != null.");
+            Specification.Assert(this.AsyncOperationToOperationsGroupMap.ContainsKey(asyncOp), $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] on a MoveNext, asyncOp: {asyncOp} was not present in AsyncOperationToOperationsGroupMap.");
+            this.AsyncOperationToOperationsGroupMap[asyncOp].RemoveOperation(asyncOp);
+            AsyncOperation oldChainOwner = this.AsyncOperationToOperationsGroupMap[asyncOp].GetOwnerOperation(); // for DEBUGGING
+            this.AsyncOperationToOperationsGroupMap[asyncOp.ParentTask].InsertOperation(asyncOp);
+            AsyncOperation newChainOwner = this.AsyncOperationToOperationsGroupMap[asyncOp.ParentTask].GetOwnerOperation(); // for DEBUGGING
+            this.AsyncOperationToOperationsGroupMap[asyncOp] = this.AsyncOperationToOperationsGroupMap[asyncOp.ParentTask];
+
+            asyncOp.LastMoveNextHandled = true;
+            Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_2: moved asyncOp: {asyncOp} from old chain of {oldChainOwner} (priority: {this.PrioritizedOperations.IndexOf(this.AsyncOperationToOperationsGroupMap[oldChainOwner])}) to new chain of {newChainOwner} (priority: {this.PrioritizedOperations.IndexOf(this.AsyncOperationToOperationsGroupMap[newChainOwner])}).");
         }
 
         /// <summary>
@@ -423,7 +488,16 @@ namespace Microsoft.Coyote.Testing.Systematic
         {
             if (this.AllRegisteredOperations.Count is 0)
             {
-                this.InsertAsyncOperationIntoOperationGroup(current);
+                if (current.IsContinuationTask)
+                {
+                    Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW continuation task: {current}.");
+                }
+                else
+                {
+                    Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW spawn task: {current}.");
+                }
+
+                this.InsertNewAsyncOperationIntoOperationGroup(current);
                 this.AllRegisteredOperations.Add(current);
             }
 
@@ -435,12 +509,16 @@ namespace Microsoft.Coyote.Testing.Systematic
                 {
                     Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW continuation task: {op}.");
                 }
-                else
+                else if (op.IsOwnerSpawnOperation)
                 {
                     Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW spawn task: {op}.");
                 }
+                else
+                {
+                    Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW delay task or non-task operation: {op}.");
+                }
 
-                this.InsertAsyncOperationIntoOperationGroup(op);
+                this.InsertNewAsyncOperationIntoOperationGroup(op);
             }
 
             foreach (var op in this.AllRegisteredOperations.Where(op => !op.LastMoveNextHandled))
@@ -449,12 +527,16 @@ namespace Microsoft.Coyote.Testing.Systematic
                 {
                     Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] changing priority due to MoveNext of continuation task: {op}.");
                 }
-                else
+                else if (op.IsOwnerSpawnOperation)
                 {
                     Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] changing priority due to MoveNext of spawn task: {op}.");
                 }
+                else
+                {
+                    Specification.Assert(false, $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] MoveNext can be called only by either a spaen or continuation task (not delay tasks and non-tasks).");
+                }
 
-                this.InsertAsyncOperationIntoOperationGroup(op);
+                this.InsertAsyncOperationIntoOperationGroupOnMoveNext(op);
             }
         }
 
@@ -477,13 +559,15 @@ namespace Microsoft.Coyote.Testing.Systematic
                 deprioritizedOperation = this.GetEnabledOperationWithHighestPriority(ops);
                 // Debug.WriteLine("<PCTLog> operation '{0}' is deprioritized.", deprioritizedOperation.Name);
                 Debug.WriteLine($"<PCTLog> operationGroup of owner op: {this.AsyncOperationToOperationsGroupMap[deprioritizedOperation].GetOwnerOperation()} is deprioritized.");
+                Debug.WriteLine($"===========<IMP_PCTStrategy> [DeprioritizeEnabledOperationWithHighestPriority] operationGroup of owner op: {this.AsyncOperationToOperationsGroupMap[deprioritizedOperation].GetOwnerOperation()} is deprioritized.");
             }
             else if (isYielding)
             {
                 // The current operation is yielding its execution to the next prioritized operation.
                 deprioritizedOperation = current;
                 // Debug.WriteLine("<PCTLog> operation '{0}' yields its priority.", deprioritizedOperation.Name);
-                Debug.WriteLine($"<PCTLog> operationGroup of owner op: {this.AsyncOperationToOperationsGroupMap[deprioritizedOperation].GetOwnerOperation()} yields its priority..");
+                Debug.WriteLine($"<PCTLog> operationGroup of owner op: {this.AsyncOperationToOperationsGroupMap[deprioritizedOperation].GetOwnerOperation()} yields its priority.");
+                Debug.WriteLine($"===========<IMP_PCTStrategy> [DeprioritizeEnabledOperationWithHighestPriority] operationGroup of owner op: {this.AsyncOperationToOperationsGroupMap[deprioritizedOperation].GetOwnerOperation()} yields its priority.");
             }
 
             if (deprioritizedOperation != null)
@@ -491,6 +575,7 @@ namespace Microsoft.Coyote.Testing.Systematic
                 // Deprioritize the operation by putting it in the end of the list.
                 this.PrioritizedOperations.Remove(this.AsyncOperationToOperationsGroupMap[deprioritizedOperation]);
                 this.PrioritizedOperations.Add(this.AsyncOperationToOperationsGroupMap[deprioritizedOperation]);
+                this.ActualNumberOfPrioritySwitches++;
             }
         }
 
@@ -614,20 +699,39 @@ namespace Microsoft.Coyote.Testing.Systematic
         {
             if (Debug.IsEnabled)
             {
-                Debug.Write("<PCTLog> operation priority list: ");
+                Debug.WriteLine($"===========<IMP_PCTStrategy> [DebugPrintOperationPriorityList].");
+                Debug.Write($"                  SIZE of each ASYNC OP GROUP:");
+                int maxSizeOperationgroup = 0;
                 for (int idx = 0; idx < this.PrioritizedOperations.Count; idx++)
                 {
-                    Debug.Write($"<PCTLog> chain_{idx}: ");
+                    if (idx != this.PrioritizedOperations.Count - 1)
+                    {
+                        Debug.Write($"|Group_ID_{this.PrioritizedOperations[idx].GetTaskGroupID()}|: {this.PrioritizedOperations[idx].GetOperationsChain().Count}, ");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"|Group_ID_{this.PrioritizedOperations[idx].GetTaskGroupID()}|: {this.PrioritizedOperations[idx].GetOperationsChain().Count}.");
+                    }
+
+                    maxSizeOperationgroup = Math.Max(maxSizeOperationgroup, this.PrioritizedOperations[idx].GetOperationsChain().Count);
+                }
+
+                Debug.WriteLine($"                  MAX_SIZE of any ASYNC OP GROUP (MAX_CHAIN_LENGTH): {maxSizeOperationgroup}");
+
+                Debug.WriteLine($"                  ELEMENTS of each ASYNC OP GROUP:");
+                for (int idx = 0; idx < this.PrioritizedOperations.Count; idx++)
+                {
                     List<AsyncOperation> operationChain = this.PrioritizedOperations[idx].GetOperationsChain();
+                    Debug.Write($"                  Group_ID_{this.PrioritizedOperations[idx].GetTaskGroupID()}: ");
                     for (int jdx = 0; jdx < operationChain.Count; jdx++)
                     {
-                        if (jdx < operationChain.Count - 1)
+                        if (jdx != operationChain.Count - 1)
                         {
-                            Debug.Write("'{0}', ", operationChain[jdx].Name);
+                            Debug.Write($"{operationChain[jdx].Name}, ");
                         }
                         else
                         {
-                            Debug.WriteLine("'{0}'.", operationChain[jdx].Name);
+                            Debug.WriteLine($"{operationChain[jdx].Name}.");
                         }
                     }
                 }
