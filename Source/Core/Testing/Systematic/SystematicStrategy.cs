@@ -37,6 +37,10 @@ namespace Microsoft.Coyote.Testing.Systematic
                 var suffixStrategy = new RandomStrategy(configuration.MaxFairSchedulingSteps, generator);
                 strategy = new ComboStrategy(prefixStrategy, suffixStrategy);
             }
+            else if (configuration.SchedulingStrategy is "pctcp")
+            {
+                strategy = new PCTCPStrategy(configuration.MaxUnfairSchedulingSteps, configuration.StrategyBound, generator);
+            }
             else if (configuration.SchedulingStrategy is "probabilistic")
             {
                 strategy = new ProbabilisticRandomStrategy(configuration.MaxFairSchedulingSteps,

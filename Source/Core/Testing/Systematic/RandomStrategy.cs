@@ -135,7 +135,7 @@ namespace Microsoft.Coyote.Testing.Systematic
 
             foreach (var op in newConcurrentOps)
             {
-                Console.WriteLine($"          newConcurrentOps: {op}, Spawner: {op.Spawner}, SpawnChainNumber: {op.SpawnChainNumber}, DepthInSpawnChain: {op.DepthInSpawnChain}");
+                Console.WriteLine($"          newConcurrentOps: {op}, Spawner: {op.ParentTask}");
                 if (op.IsContinuationTask)
                 {
                     if (op.ParentTask == null)
