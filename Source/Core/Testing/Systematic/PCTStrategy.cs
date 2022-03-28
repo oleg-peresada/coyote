@@ -214,7 +214,7 @@ namespace Microsoft.Coyote.Testing.Systematic
                 Debug.WriteLine($"===========<IMP_PCTStrategy> PROBABILITY STATS for ITERATION: {iteration - 1}");
 
                 int n_theory = this.AllRegisteredOperations.Count; // FN_TODO : think are we measuring corrent parameters for probabilities?
-                int d_theory = this.MaxPrioritySwitchPoints;
+                int d_theory = Math.Max(this.MaxPrioritySwitchPoints, 1);
                 int k_theory = this.StepCount;
                 double power_theory = Math.Pow(k_theory, d_theory - 1);
                 double denominator_theory = n_theory * power_theory;
@@ -224,7 +224,7 @@ namespace Microsoft.Coyote.Testing.Systematic
                 Debug.WriteLine(string.Empty);
 
                 int n_actual = this.PrioritizedOperations.Count; // FN_TODO : think are we measuring corrent parameters for probabilities?
-                // int d_actual = this.ActualNumberOfPrioritySwitches;
+                // int d_actual = Math.Max(this.ActualNumberOfPrioritySwitches, 1);
                 int d_actual = d_theory;
                 int k_actual = k_theory;
                 double power_actual = Math.Pow(k_actual, d_actual - 1);
@@ -469,7 +469,6 @@ namespace Microsoft.Coyote.Testing.Systematic
                         Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted delay/non-task owner asyncOp: {asyncOp} into old NonAsyncStateMachineOperationGroup which has priority: {this.PrioritizedOperations.IndexOf(this.NonAsyncStateMachineOperationGroup)}");
                     }
                 }
-                    
             }
             else
             {
