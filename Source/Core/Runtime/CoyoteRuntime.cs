@@ -329,6 +329,7 @@ namespace Microsoft.Coyote.Runtime
             op.LastMoveNextHandled = true;
             op.TaskGroupID = this.AsyncStateMachineOwnerOperationsList.IndexOf(op.ParentTask);
             op.IsOwnerSpawnOperation = true;
+            op.IsDelayTaskOperation = false;
             IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [RunTestAsync] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
             IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [RunTestAsync] parent of first (test case) task : {op} is set to : {op.ParentTask}");
 
@@ -456,6 +457,7 @@ namespace Microsoft.Coyote.Runtime
             op.LastMoveNextHandled = true;
             op.TaskGroupID = -1;
             op.IsOwnerSpawnOperation = false;
+            op.IsDelayTaskOperation = false;
             IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [Schedule] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
             // List<AsyncOperation> spawneeList = spawner.Spawnees;
             // spawneeList.Add(op);
@@ -582,6 +584,7 @@ namespace Microsoft.Coyote.Runtime
                 op.LastMoveNextHandled = true;
                 op.TaskGroupID = this.AsyncStateMachineOwnerOperationsList.IndexOf(op.ParentTask);
                 op.IsOwnerSpawnOperation = true;
+                op.IsDelayTaskOperation = true;
                 IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [ScheduleTask] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
                 IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [ScheduleTask] parent of spawn task : {op} is set to : {op.ParentTask}");
 
@@ -602,6 +605,7 @@ namespace Microsoft.Coyote.Runtime
                 op.LastMoveNextHandled = true;
                 op.TaskGroupID = -1;
                 op.IsOwnerSpawnOperation = false;
+                op.IsDelayTaskOperation = false;
                 IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [RunTestAsync] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
                 IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [RunTestAsync] parent of delay task : {op} is set to : null.");
 

@@ -58,7 +58,7 @@ namespace Microsoft.Coyote.Testing.Systematic
                 }
                 else
                 {
-                    int index = this.RandomValueGenerator.Next(this.OperationsChain.Count) + 1;
+                    int index = this.RandomValueGenerator.Next(this.OperationsChain.Count + 1);
                     this.OperationsChain.Insert(index, newOperation);
                 }
             }
@@ -116,6 +116,8 @@ namespace Microsoft.Coyote.Testing.Systematic
 
         private AsyncStateMachineTaskOperationsGroup NonAsyncStateMachineOperationGroup;
 
+        private AsyncStateMachineTaskOperationsGroup DelayOperationGroup;
+
         /// <summary>
         /// List of prioritized operations.
         /// </summary>
@@ -170,6 +172,7 @@ namespace Microsoft.Coyote.Testing.Systematic
             this.ActualNumberOfPrioritySwitches = 0;
             this.AsyncOperationToOperationsGroupMap = new Dictionary<AsyncOperation, AsyncStateMachineTaskOperationsGroup>();
             // this.NonAsyncStateMachineOperationGroup = new AsyncStateMachineTaskOperationsGroup();
+            // this.DelayOperationGroup = new AsyncStateMachineTaskOperationsGroup();
             this.PrioritizedOperations = new List<AsyncStateMachineTaskOperationsGroup>();
             this.AllRegisteredOperations = new List<AsyncOperation>();
             this.RegisteredOps = new HashSet<AsyncOperation>();
@@ -238,6 +241,7 @@ namespace Microsoft.Coyote.Testing.Systematic
                 // FN_TODO: properly clean these datastructures?
                 this.AsyncOperationToOperationsGroupMap.Clear();
                 this.NonAsyncStateMachineOperationGroup = null;
+                this.DelayOperationGroup = null;
                 this.PrioritizedOperations.Clear();
                 this.AllRegisteredOperations.Clear();
                 this.RegisteredOps.Clear();
@@ -410,31 +414,62 @@ namespace Microsoft.Coyote.Testing.Systematic
         private void InsertNewAsyncOperationIntoOperationGroup(AsyncOperation asyncOp)
         {
             // FN_IMP_TODO: operations in the this.NonAsyncStateMachineOperationGroup can also get different priorities and be deprioratized.
+            // FN_IMP_TODO: Modularize the code, lot of code duplication.
             if (asyncOp.TaskGroupID == -1)
             {
-                if (this.NonAsyncStateMachineOperationGroup == null)
+                if (asyncOp.IsDelayTaskOperation)
                 {
-                    this.NonAsyncStateMachineOperationGroup = new AsyncStateMachineTaskOperationsGroup(asyncOp, this.RandomValueGenerator);
-                    if (this.PrioritizedOperations.Count == 0)
+                    if (this.DelayOperationGroup == null)
                     {
-                        this.PrioritizedOperations.Add(this.NonAsyncStateMachineOperationGroup);
-                        Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted [FIRST] delay/non-task asyncOp: {asyncOp} into new NonAsyncStateMachineOperationGroup with priority: 0");
+                        this.DelayOperationGroup = new AsyncStateMachineTaskOperationsGroup(asyncOp, this.RandomValueGenerator);
+                        if (this.PrioritizedOperations.Count == 0)
+                        {
+                            this.PrioritizedOperations.Add(this.DelayOperationGroup);
+                            Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_4: inserted [FIRST] delay asyncOp: {asyncOp} into new DelayOperationGroup with priority: 0");
+                        }
+                        else
+                        {
+                            int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count + 1);
+                            this.PrioritizedOperations.Insert(index, this.DelayOperationGroup);
+                            Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_4: inserted delay asyncOp: {asyncOp} into new DelayOperationGroup with priority: {index}");
+                        }
+
+                        this.AsyncOperationToOperationsGroupMap.Add(asyncOp, this.DelayOperationGroup);
                     }
                     else
                     {
-                        int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
-                        this.PrioritizedOperations.Insert(index, this.NonAsyncStateMachineOperationGroup);
-                        Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted delay/non-task asyncOp: {asyncOp} into new NonAsyncStateMachineOperationGroup with priority: {index}");
+                        this.DelayOperationGroup.InsertOperation(asyncOp);
+                        this.AsyncOperationToOperationsGroupMap.Add(asyncOp, this.DelayOperationGroup);
+                        Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_4: inserted delay asyncOp: {asyncOp} into old DelayOperationGroup which has priority: {this.PrioritizedOperations.IndexOf(this.DelayOperationGroup)}");
                     }
-
-                    this.AsyncOperationToOperationsGroupMap.Add(asyncOp, this.NonAsyncStateMachineOperationGroup);
                 }
                 else
                 {
-                    this.NonAsyncStateMachineOperationGroup.InsertOperation(asyncOp);
-                    this.AsyncOperationToOperationsGroupMap.Add(asyncOp, this.NonAsyncStateMachineOperationGroup);
-                    Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted delay/non-task owner asyncOp: {asyncOp} into old NonAsyncStateMachineOperationGroup which has priority: {this.PrioritizedOperations.IndexOf(this.NonAsyncStateMachineOperationGroup)}");
+                    if (this.NonAsyncStateMachineOperationGroup == null)
+                    {
+                        this.NonAsyncStateMachineOperationGroup = new AsyncStateMachineTaskOperationsGroup(asyncOp, this.RandomValueGenerator);
+                        if (this.PrioritizedOperations.Count == 0)
+                        {
+                            this.PrioritizedOperations.Add(this.NonAsyncStateMachineOperationGroup);
+                            Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted [FIRST] delay/non-task asyncOp: {asyncOp} into new NonAsyncStateMachineOperationGroup with priority: 0");
+                        }
+                        else
+                        {
+                            int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count + 1);
+                            this.PrioritizedOperations.Insert(index, this.NonAsyncStateMachineOperationGroup);
+                            Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted delay/non-task asyncOp: {asyncOp} into new NonAsyncStateMachineOperationGroup with priority: {index}");
+                        }
+
+                        this.AsyncOperationToOperationsGroupMap.Add(asyncOp, this.NonAsyncStateMachineOperationGroup);
+                    }
+                    else
+                    {
+                        this.NonAsyncStateMachineOperationGroup.InsertOperation(asyncOp);
+                        this.AsyncOperationToOperationsGroupMap.Add(asyncOp, this.NonAsyncStateMachineOperationGroup);
+                        Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_3: inserted delay/non-task owner asyncOp: {asyncOp} into old NonAsyncStateMachineOperationGroup which has priority: {this.PrioritizedOperations.IndexOf(this.NonAsyncStateMachineOperationGroup)}");
+                    }
                 }
+                    
             }
             else
             {
@@ -449,7 +484,7 @@ namespace Microsoft.Coyote.Testing.Systematic
                     }
                     else
                     {
-                        int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count) + 1;
+                        int index = this.RandomValueGenerator.Next(this.PrioritizedOperations.Count + 1);
                         this.PrioritizedOperations.Insert(index, newOperationGroup);
                         Debug.WriteLine($"===========<IMP_PCTStrategy> [InsertAsyncOperationIntoOperationGroup] CASE_1: inserted owner asyncOp: {asyncOp} into a new chain with priority: {index}");
                     }
@@ -492,6 +527,10 @@ namespace Microsoft.Coyote.Testing.Systematic
                 {
                     Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW continuation task: {current}.");
                 }
+                else if (current.IsDelayTaskOperation)
+                {
+                    Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW delay task: {current}.");
+                }
                 else
                 {
                     Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW spawn task: {current}.");
@@ -513,9 +552,13 @@ namespace Microsoft.Coyote.Testing.Systematic
                 {
                     Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW spawn task: {op}.");
                 }
+                else if (current.IsDelayTaskOperation)
+                {
+                    Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW delay task: {op}.");
+                }
                 else
                 {
-                    Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW delay task or non-task operation: {op}.");
+                    Debug.WriteLine($"===========<IMP_PCTStrategy> [SetNewOperationPriorities] handling NEW non-task operation: {op}.");
                 }
 
                 this.InsertNewAsyncOperationIntoOperationGroup(op);
@@ -722,16 +765,16 @@ namespace Microsoft.Coyote.Testing.Systematic
                 for (int idx = 0; idx < this.PrioritizedOperations.Count; idx++)
                 {
                     List<AsyncOperation> operationChain = this.PrioritizedOperations[idx].GetOperationsChain();
-                    Debug.Write($"                  Group_ID_{this.PrioritizedOperations[idx].GetTaskGroupID()}: ");
+                    Debug.Write($"                  Group_ID_{this.PrioritizedOperations[idx].GetTaskGroupID()} (PRIORITY: {idx}): ");
                     for (int jdx = 0; jdx < operationChain.Count; jdx++)
                     {
                         if (jdx != operationChain.Count - 1)
                         {
-                            Debug.Write($"{operationChain[jdx].Name}, ");
+                            Debug.Write($"{operationChain[jdx].Name} (STATUS: {operationChain[jdx].Status}), ");
                         }
                         else
                         {
-                            Debug.WriteLine($"{operationChain[jdx].Name}.");
+                            Debug.WriteLine($"{operationChain[jdx].Name} (STATUS: {operationChain[jdx].Status}).");
                         }
                     }
                 }

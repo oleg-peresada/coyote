@@ -26,6 +26,8 @@ namespace Microsoft.Coyote.Runtime
 
         public bool IsOwnerSpawnOperation = false;
 
+        public bool IsDelayTaskOperation = false;
+
         /// <summary>
         /// The unique id of the operation.
         /// </summary>
