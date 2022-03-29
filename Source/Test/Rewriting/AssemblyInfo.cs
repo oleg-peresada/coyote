@@ -202,25 +202,32 @@ namespace Microsoft.Coyote.Rewriting
                                             }
                                         }
 
-                                        asyncTaskMethodBuilderFieldRef = asyncTaskMethodBuilderFieldRef.Resolve();
-                                        asyncTaskMethodBuilderFieldRef = method.Module.ImportReference(asyncTaskMethodBuilderFieldRef);
+                                        if (asyncTaskMethodBuilderFieldRef == null)
+                                        {
+                                            Console.WriteLine($"ERROR: in FN_REWRITING for type: {type}");
+                                        }
+                                        else
+                                        {
+                                            asyncTaskMethodBuilderFieldRef = asyncTaskMethodBuilderFieldRef.Resolve();
+                                            asyncTaskMethodBuilderFieldRef = method.Module.ImportReference(asyncTaskMethodBuilderFieldRef);
 
-                                        TypeDefinition asyncTaskMethodBuilderType = method.Module.ImportReference(typeof(AsyncTaskMethodBuilder)).Resolve();
-                                        MethodReference onMoveNextMethod = asyncTaskMethodBuilderType.Methods.FirstOrDefault(
-                                            m => m.Name is nameof(AsyncTaskMethodBuilder.OnMoveNext));
-                                        onMoveNextMethod = method.Module.ImportReference(onMoveNextMethod);
+                                            TypeDefinition asyncTaskMethodBuilderType = method.Module.ImportReference(typeof(AsyncTaskMethodBuilder)).Resolve();
+                                            MethodReference onMoveNextMethod = asyncTaskMethodBuilderType.Methods.FirstOrDefault(
+                                                m => m.Name is nameof(AsyncTaskMethodBuilder.OnMoveNext));
+                                            onMoveNextMethod = method.Module.ImportReference(onMoveNextMethod);
 
-                                        processor.InsertBefore(method.Body.Instructions[0], processor.Create(OpCodes.Call, onMoveNextMethod));
-                                        processor.InsertBefore(method.Body.Instructions[0], processor.Create(OpCodes.Ldflda, asyncTaskMethodBuilderFieldRef));
-                                        processor.InsertBefore(method.Body.Instructions[0], processor.Create(OpCodes.Ldarg_0));
+                                            processor.InsertBefore(method.Body.Instructions[0], processor.Create(OpCodes.Call, onMoveNextMethod));
+                                            processor.InsertBefore(method.Body.Instructions[0], processor.Create(OpCodes.Ldflda, asyncTaskMethodBuilderFieldRef));
+                                            processor.InsertBefore(method.Body.Instructions[0], processor.Create(OpCodes.Ldarg_0));
 
-                                        // Console.WriteLine($"F_REWRITING_OUT MN AFTER ==> method.Body: {method.Body.ToString()}, asyncTaskMethodBuilderFieldRef: {asyncTaskMethodBuilderFieldRef}, onMoveNextMethod: {onMoveNextMethod}");
-                                        // instructionList = method.Body.Instructions.ToList();
-                                        // Console.WriteLine($"F_REWRITING_OUT MN AFTER ==> method.Body(complere): ");
-                                        // foreach (var instruction in instructionList)
-                                        // {
-                                        //     Console.WriteLine($"          {instruction}");
-                                        // }
+                                            // Console.WriteLine($"F_REWRITING_OUT MN AFTER ==> method.Body: {method.Body.ToString()}, asyncTaskMethodBuilderFieldRef: {asyncTaskMethodBuilderFieldRef}, onMoveNextMethod: {onMoveNextMethod}");
+                                            // instructionList = method.Body.Instructions.ToList();
+                                            // Console.WriteLine($"F_REWRITING_OUT MN AFTER ==> method.Body(complere): ");
+                                            // foreach (var instruction in instructionList)
+                                            // {
+                                            //     Console.WriteLine($"          {instruction}");
+                                            // }
+                                        }
                                     }
                                 }
 
