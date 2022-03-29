@@ -706,8 +706,8 @@ namespace Microsoft.Coyote.Runtime
                     },
                     op,
                     cancellationToken,
-                    this.TaskFactory.CreationOptions | TaskCreationOptions.DenyChildAttach | TaskCreationOptions.RunContinuationsAsynchronously,
-                    // this.TaskFactory.CreationOptions | TaskCreationOptions.DenyChildAttach,
+                    // this.TaskFactory.CreationOptions | TaskCreationOptions.DenyChildAttach | TaskCreationOptions.RunContinuationsAsynchronously,
+                    this.TaskFactory.CreationOptions | TaskCreationOptions.DenyChildAttach,
                     this.TaskFactory.Scheduler);
             }
 
