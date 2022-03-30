@@ -458,6 +458,19 @@ namespace Microsoft.Coyote
         }
 
         /// <summary>
+        /// Updates the configuration to use the TASKPCT scheduling strategy during systematic testing.
+        /// You can specify the number of priority switch points, which by default are 10.
+        /// </summary>
+        /// <param name="isFair">If true, use the fair version of PCT.</param>
+        /// <param name="numPrioritySwitchPoints">The nunmber of priority switch points.</param>
+        public Configuration WithTaskPCTStrategy(bool isFair, uint numPrioritySwitchPoints = 10)
+        {
+            this.SchedulingStrategy = isFair ? "fairtaskpct" : "taskpct";
+            this.StrategyBound = (int)numPrioritySwitchPoints;
+            return this;
+        }
+
+        /// <summary>
         /// Updates the configuration to use the reinforcement learning (RL) scheduling strategy
         /// during systematic testing.
         /// </summary>

@@ -29,6 +29,10 @@ namespace Microsoft.Coyote.Testing.Systematic
             {
                 strategy = new PCTStrategy(configuration.MaxUnfairSchedulingSteps, configuration.StrategyBound, generator);
             }
+            else if (configuration.SchedulingStrategy is "taskpct")
+            {
+                strategy = new TaskPCTStrategy(configuration.MaxUnfairSchedulingSteps, configuration.StrategyBound, generator);
+            }
             else if (configuration.SchedulingStrategy is "fairpct")
             {
                 var prefixLength = configuration.SafetyPrefixBound is 0 ?
@@ -37,9 +41,13 @@ namespace Microsoft.Coyote.Testing.Systematic
                 var suffixStrategy = new RandomStrategy(configuration.MaxFairSchedulingSteps, generator);
                 strategy = new ComboStrategy(prefixStrategy, suffixStrategy);
             }
-            else if (configuration.SchedulingStrategy is "pctcp")
+            else if (configuration.SchedulingStrategy is "fairtaskpct")
             {
-                strategy = new PCTCPStrategy(configuration.MaxUnfairSchedulingSteps, configuration.StrategyBound, generator);
+                var prefixLength = configuration.SafetyPrefixBound is 0 ?
+                    configuration.MaxUnfairSchedulingSteps : configuration.SafetyPrefixBound;
+                var prefixStrategy = new TaskPCTStrategy(prefixLength, configuration.StrategyBound, generator);
+                var suffixStrategy = new RandomStrategy(configuration.MaxFairSchedulingSteps, generator);
+                strategy = new ComboStrategy(prefixStrategy, suffixStrategy);
             }
             else if (configuration.SchedulingStrategy is "probabilistic")
             {
