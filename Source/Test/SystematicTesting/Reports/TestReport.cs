@@ -16,6 +16,20 @@ namespace Microsoft.Coyote.SystematicTesting
     [DataContract]
     public class TestReport : ITestReport
     {
+        // TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext (by spawn and continuation tasks) to the TestReport
+
+        /// <summary>
+        /// Number of Spawn Tasks observed.
+        /// </summary>
+        [DataMember]
+        public int NumSpawnTasks { get; set; }
+
+        /// <summary>
+        /// Number of Continuation Tasks observed.
+        /// </summary>
+        [DataMember]
+        public int NumContinuationTasks { get; set; }
+
         /// <summary>
         /// Configuration of the program-under-test.
         /// </summary>
@@ -146,7 +160,7 @@ namespace Microsoft.Coyote.SystematicTesting
 
         /// <inheritdoc/>
         void ITestReport.SetSchedulingStatistics(bool isBugFound, string bugReport, int scheduledSteps,
-            bool isMaxScheduledStepsBoundReached, bool isScheduleFair)
+            bool isMaxScheduledStepsBoundReached, bool isScheduleFair, int numSpawnTasks, int numContinuationTasks)
         {
             if (isBugFound)
             {
@@ -188,6 +202,10 @@ namespace Microsoft.Coyote.SystematicTesting
                     this.MaxUnfairStepsHitInUnfairTests++;
                 }
             }
+
+            this.NumContinuationTasks = numContinuationTasks;
+            this.NumSpawnTasks = numSpawnTasks;
+            // F_TODO: find all references of this function and change everywhere the arguments
         }
 
         /// <inheritdoc/>
@@ -250,6 +268,8 @@ namespace Microsoft.Coyote.SystematicTesting
                 }
 
                 this.InternalErrors.UnionWith(testReport.InternalErrors);
+                this.NumSpawnTasks += testReport.NumSpawnTasks;
+                this.NumContinuationTasks += testReport.NumContinuationTasks;
             }
 
             return true;
@@ -357,6 +377,24 @@ namespace Microsoft.Coyote.SystematicTesting
                         (double)this.MaxUnfairStepsHitInUnfairTests / this.NumOfExploredUnfairSchedules * 100);
                 }
             }
+
+            // if (this.NumContinuationTasks > 0)
+            // {
+            report.AppendLine();
+            report.AppendFormat(
+            "{0} Number of continuation tasks is.",
+            prefix.Equals("...") ? "....." : prefix,
+            this.NumContinuationTasks);
+            // }
+
+            // if (this.NumSpawnTasks > 0)
+            // {
+            report.AppendLine();
+            report.AppendFormat(
+            "{0} Number of new spawn tasks is.",
+            prefix.Equals("...") ? "....." : prefix,
+            this.NumSpawnTasks);
+            // }
 
             return report.ToString();
         }

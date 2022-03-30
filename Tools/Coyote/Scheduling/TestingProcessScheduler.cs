@@ -405,6 +405,9 @@ namespace Microsoft.Coyote.SystematicTesting
 
             // Get and merge the test report.
             TestReport testReport = testingProcess.GetTestReport();
+            // TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext (by spawn and continuation tasks) to the TestReport
+            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> numSpawnTasks: {testReport.NumSpawnTasks}");
+            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> numContinuationTasks: {testReport.NumContinuationTasks}");
             if (testReport != null)
             {
                 this.MergeTestReport(testReport, 0);

@@ -1926,9 +1926,9 @@ namespace Microsoft.Coyote.Runtime
         {
             lock (this.SyncObject)
             {
-                // TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext, numDelayTasks (by spawn and continuation tasks) to the TestReport
+                // FN_TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext, numDelayTasks (by spawn and continuation tasks) to the TestReport
                 report.SetSchedulingStatistics(this.IsBugFound, this.BugReport, this.Scheduler.StepCount,
-                    this.Scheduler.IsMaxStepsReached, this.Scheduler.IsScheduleFair);
+                    this.Scheduler.IsMaxStepsReached, this.Scheduler.IsScheduleFair, this.NumSpawnTasks, this.NumContinuationTasks);
                 if (this.IsBugFound)
                 {
                     report.SetUnhandledException(this.UnhandledException);

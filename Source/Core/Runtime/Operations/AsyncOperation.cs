@@ -16,7 +16,7 @@ namespace Microsoft.Coyote.Runtime
         public bool IsContinuationTask = false;
 
          // TODO: make it internal or private, initialize properly inside a constructor
-        public List<AsyncOperation> Spawnees = new List<AsyncOperation>();
+        // public List<AsyncOperation> Spawnees = new List<AsyncOperation>();
 
         public bool LastMoveNextHandled = true;
 
