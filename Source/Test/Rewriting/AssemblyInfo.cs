@@ -204,7 +204,7 @@ namespace Microsoft.Coyote.Rewriting
 
                                         if (asyncTaskMethodBuilderFieldRef == null)
                                         {
-                                            Console.WriteLine($"ERROR: in FN_REWRITING for type: {type}");
+                                            Console.WriteLine($"EYRYRYOR: in FN_REWRITING for type: {type}");
                                         }
                                         else
                                         {

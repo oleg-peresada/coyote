@@ -201,6 +201,10 @@ namespace Microsoft.Coyote.Runtime
 
         public int NumOfMoveNext;
 
+        public int NumOfMoveNextMissed;
+
+        public int NumOfAsyncStateMachineStartMissed;
+
         /// <summary>
         /// True if a bug was found, else false.
         /// </summary>
@@ -530,10 +534,21 @@ namespace Microsoft.Coyote.Runtime
         //     // FN_TODO_1: think is a this.ScheduleNextOperation(currentOperation.Type); i.e. scheduling point call required here
         // }
 
+        internal void LogMissedParentSettingInAsyncStateMachineStart()
+        {
+             this.NumOfAsyncStateMachineStartMissed++;
+        }
+
         internal void SetParentOnMoveNext(AsyncOperation parent)
         {
             if (this.SchedulingPolicy is SchedulingPolicy.Systematic)
             {
+                if (parent == null)
+                {
+                    this.NumOfMoveNextMissed++;
+                    return;
+                }
+
                 this.NumOfMoveNext++;
                 IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [SetParentOnMoveNext] parent: {parent}, thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
                 AsyncOperation currentOperation = this.ScheduledOperation;
@@ -545,11 +560,11 @@ namespace Microsoft.Coyote.Runtime
 
                 if (currentOperation.IsContinuationTask)
                 {
-                    Console.WriteLine($"     <TaskSummaryLog> T-case 4.): Continuation task {currentOperation} (id = {currentOperation.Id}) created by {currentOperation.ParentTask.ParentTask} (id = {currentOperation.ParentTask.ParentTask.Id}).");
+                    Console.WriteLine($"     <TaskSummaryLog> T-case 4.): Continuation task {currentOperation} (id = {currentOperation.Id}) created by {currentOperation.ParentTask} (id = {currentOperation.ParentTask.Id}).");
                 }
                 else
                 {
-                    Console.WriteLine($"     <TaskSummaryLog> T-case 5.): Spawn task {currentOperation} (id = {currentOperation.Id}) created by {currentOperation.ParentTask.ParentTask} (id = {currentOperation.ParentTask.ParentTask.Id}).");
+                    Console.WriteLine($"     <TaskSummaryLog> T-case 5.): Spawn task {currentOperation} (id = {currentOperation.Id}) created by {currentOperation.ParentTask} (id = {currentOperation.ParentTask.Id}).");
                 }
 
                 this.ScheduleNextOperation(currentOperation.Type);

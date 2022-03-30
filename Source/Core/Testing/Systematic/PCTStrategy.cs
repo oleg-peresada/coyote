@@ -503,8 +503,8 @@ namespace Microsoft.Coyote.Testing.Systematic
 
         private void InsertAsyncOperationIntoOperationGroupOnMoveNext(AsyncOperation asyncOp)
         {
-            Specification.Assert(asyncOp.ParentTask != null, $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] asyncOp.ParentTask != null.");
-            Specification.Assert(this.AsyncOperationToOperationsGroupMap.ContainsKey(asyncOp), $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] on a MoveNext, asyncOp: {asyncOp} was not present in AsyncOperationToOperationsGroupMap.");
+            Specification.Assert(asyncOp.ParentTask != null, $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroupOnMoveNext] asyncOp.ParentTask == null.");
+            Specification.Assert(this.AsyncOperationToOperationsGroupMap.ContainsKey(asyncOp), $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroupOnMoveNext] on a MoveNext, asyncOp: {asyncOp} was not present in AsyncOperationToOperationsGroupMap.");
             this.AsyncOperationToOperationsGroupMap[asyncOp].RemoveOperation(asyncOp);
             AsyncOperation oldChainOwner = this.AsyncOperationToOperationsGroupMap[asyncOp].GetOwnerOperation(); // for DEBUGGING
             this.AsyncOperationToOperationsGroupMap[asyncOp.ParentTask].InsertOperation(asyncOp);
@@ -575,7 +575,9 @@ namespace Microsoft.Coyote.Testing.Systematic
                 }
                 else
                 {
-                    Specification.Assert(false, $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] MoveNext can be called only by either a spaen or continuation task (not delay tasks and non-tasks).");
+                    // FN_DEBUG:
+                    // Specification.Assert(false, $"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] MoveNext can be called only by either a spaen or continuation task (not delay tasks and non-tasks).");
+                    Debug.WriteLine($"     ===========<IMP_PCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] MoveNext can be called only by either a spaen or continuation task (not delay tasks and non-tasks).");
                 }
 
                 this.InsertAsyncOperationIntoOperationGroupOnMoveNext(op);

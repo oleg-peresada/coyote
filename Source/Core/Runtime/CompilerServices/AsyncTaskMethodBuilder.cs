@@ -82,6 +82,11 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
             where TStateMachine : IAsyncStateMachine
         {
             this.ParentOperation = CoyoteRuntime.ThreadLocalParentAsyncOperation.Value;
+            if (this.ParentOperation == null)
+            {
+                this.Runtime?.LogMissedParentSettingInAsyncStateMachineStart();
+            }
+
             IO.Debug.WriteLine("<AsyncBuilder> Start state machine from thread '{0}' with context '{1}' and runtime '{2}'.",
                 Thread.CurrentThread.ManagedThreadId, SynchronizationContext.Current, this.Runtime?.Id);
             IO.Debug.WriteLine($"===========<F_AsyncBuilder> [Start] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {CoyoteRuntime.ThreadLocalParentAsyncOperation?.Value}");
@@ -223,6 +228,11 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
             where TStateMachine : IAsyncStateMachine
         {
             this.ParentOperation = CoyoteRuntime.ThreadLocalParentAsyncOperation.Value;
+            if (this.ParentOperation == null)
+            {
+                this.Runtime?.LogMissedParentSettingInAsyncStateMachineStart();
+            }
+
             IO.Debug.WriteLine("<AsyncBuilder> Start state machine from thread '{0}' with context '{1}' and runtime '{2}'.",
                 Thread.CurrentThread.ManagedThreadId, SynchronizationContext.Current, this.Runtime?.Id);
             IO.Debug.WriteLine($"===========<F_AsyncBuilder> [Start] thread {Thread.CurrentThread.ManagedThreadId}, Task: ?, tlid: {CoyoteRuntime.ThreadLocalParentAsyncOperation?.Value}");
