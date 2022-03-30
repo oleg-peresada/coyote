@@ -84,7 +84,11 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
             this.ParentOperation = CoyoteRuntime.ThreadLocalParentAsyncOperation.Value;
             if (this.ParentOperation == null)
             {
-                this.Runtime?.LogMissedParentSettingInAsyncStateMachineStart();
+                this.Runtime?.OnAsyncStateMachineStart(true);
+            }
+            else
+            {
+                this.Runtime?.OnAsyncStateMachineStart(false);
             }
 
             IO.Debug.WriteLine("<AsyncBuilder> Start state machine from thread '{0}' with context '{1}' and runtime '{2}'.",
@@ -230,7 +234,11 @@ namespace Microsoft.Coyote.Runtime.CompilerServices
             this.ParentOperation = CoyoteRuntime.ThreadLocalParentAsyncOperation.Value;
             if (this.ParentOperation == null)
             {
-                this.Runtime?.LogMissedParentSettingInAsyncStateMachineStart();
+                this.Runtime?.OnAsyncStateMachineStart(true);
+            }
+            else
+            {
+                this.Runtime?.OnAsyncStateMachineStart(false);
             }
 
             IO.Debug.WriteLine("<AsyncBuilder> Start state machine from thread '{0}' with context '{1}' and runtime '{2}'.",

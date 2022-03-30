@@ -203,6 +203,8 @@ namespace Microsoft.Coyote.Runtime
 
         public int NumOfMoveNextMissed;
 
+        public int NumOfAsyncStateMachineStart;
+
         public int NumOfAsyncStateMachineStartMissed;
 
         /// <summary>
@@ -534,9 +536,14 @@ namespace Microsoft.Coyote.Runtime
         //     // FN_TODO_1: think is a this.ScheduleNextOperation(currentOperation.Type); i.e. scheduling point call required here
         // }
 
-        internal void LogMissedParentSettingInAsyncStateMachineStart()
+        internal void OnAsyncStateMachineStart(bool missed)
         {
-             this.NumOfAsyncStateMachineStartMissed++;
+            if (missed)
+            {
+                this.NumOfAsyncStateMachineStartMissed++;
+            }
+
+            this.NumOfAsyncStateMachineStart++;
         }
 
         internal void SetParentOnMoveNext(AsyncOperation parent)
@@ -599,7 +606,7 @@ namespace Microsoft.Coyote.Runtime
                 op.LastMoveNextHandled = true;
                 op.TaskGroupID = this.AsyncStateMachineOwnerOperationsList.IndexOf(op.ParentTask);
                 op.IsOwnerSpawnOperation = true;
-                op.IsDelayTaskOperation = true;
+                op.IsDelayTaskOperation = false;
                 IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [ScheduleTask] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
                 IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [ScheduleTask] parent of spawn task : {op} is set to : {op.ParentTask}");
 
@@ -620,7 +627,7 @@ namespace Microsoft.Coyote.Runtime
                 op.LastMoveNextHandled = true;
                 op.TaskGroupID = -1;
                 op.IsOwnerSpawnOperation = false;
-                op.IsDelayTaskOperation = false;
+                op.IsDelayTaskOperation = true;
                 IO.Debug.WriteLine($"===========<F_CoyoteRuntime> [RunTestAsync] [before context switch] thread: {Thread.CurrentThread.ManagedThreadId}, Task: {Task.CurrentId}, tlid: {ThreadLocalParentAsyncOperation?.Value}");
                 IO.Debug.WriteLine($"===========<F_IMP_CoyoteRuntime> [RunTestAsync] parent of delay task : {op} is set to : null.");
 
@@ -628,8 +635,8 @@ namespace Microsoft.Coyote.Runtime
                 if (delayTrace == "1")
                 {
                     StackTrace stackTrace = new StackTrace();
-                    Console.WriteLine($"--------------------<SPAWN> stackTrace: '{stackTrace}'.");
-                    Console.WriteLine($"--------------------<SPAWN> op.Id: {op.Id}, op.Name: {op.Name}, op.ParentTask: null");
+                    Console.WriteLine($"--------------------<DELAY> stackTrace: '{stackTrace}'.");
+                    Console.WriteLine($"--------------------<DELAY> op.Id: {op.Id}, op.Name: {op.Name}, op.ParentTask: null");
                 }
             }
 
@@ -1926,9 +1933,8 @@ namespace Microsoft.Coyote.Runtime
         {
             lock (this.SyncObject)
             {
-                // FN_TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext, numDelayTasks (by spawn and continuation tasks) to the TestReport
                 report.SetSchedulingStatistics(this.IsBugFound, this.BugReport, this.Scheduler.StepCount,
-                    this.Scheduler.IsMaxStepsReached, this.Scheduler.IsScheduleFair, this.NumSpawnTasks, this.NumContinuationTasks);
+                    this.Scheduler.IsMaxStepsReached, this.Scheduler.IsScheduleFair, this.NumSpawnTasks, this.NumContinuationTasks, this.NumDelayTasks, this.NumOfAsyncStateMachineStart, this.NumOfAsyncStateMachineStartMissed, this.NumOfMoveNext, this.NumOfMoveNextMissed);
                 if (this.IsBugFound)
                 {
                     report.SetUnhandledException(this.UnhandledException);

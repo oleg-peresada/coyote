@@ -16,8 +16,6 @@ namespace Microsoft.Coyote.SystematicTesting
     [DataContract]
     public class TestReport : ITestReport
     {
-        // TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext (by spawn and continuation tasks) to the TestReport
-
         /// <summary>
         /// Number of Spawn Tasks observed.
         /// </summary>
@@ -29,6 +27,36 @@ namespace Microsoft.Coyote.SystematicTesting
         /// </summary>
         [DataMember]
         public int NumContinuationTasks { get; set; }
+
+        /// <summary>
+        /// Number of Delay Tasks observed.
+        /// </summary>
+        [DataMember]
+        public int NumDelayTasks;
+
+        /// <summary>
+        /// Number of times Start method is called by AsyncStateMachines.
+        /// </summary>
+        [DataMember]
+        public int NumOfAsyncStateMachineStart;
+
+        /// <summary>
+        /// Number of Start method calls by AsyncStateMachines in which correct owner operation was not set.
+        /// </summary>
+        [DataMember]
+        public int NumOfAsyncStateMachineStartMissed;
+
+        /// <summary>
+        /// Number of times MoveNext method is called by AsyncStateMachines.
+        /// </summary>
+        [DataMember]
+        public int NumOfMoveNext;
+
+        /// <summary>
+        /// Number of times setting correct parent or priority on a MoveNext method call is missed.
+        /// </summary>
+        [DataMember]
+        public int NumOfMoveNextMissed;
 
         /// <summary>
         /// Configuration of the program-under-test.
@@ -160,7 +188,7 @@ namespace Microsoft.Coyote.SystematicTesting
 
         /// <inheritdoc/>
         void ITestReport.SetSchedulingStatistics(bool isBugFound, string bugReport, int scheduledSteps,
-            bool isMaxScheduledStepsBoundReached, bool isScheduleFair, int numSpawnTasks, int numContinuationTasks)
+            bool isMaxScheduledStepsBoundReached, bool isScheduleFair, int numSpawnTasks, int numContinuationTasks, int NumDelayTasks, int NumOfAsyncStateMachineStart, int NumOfAsyncStateMachineStartMissed, int NumOfMoveNext, int NumOfMoveNextMissed)
         {
             if (isBugFound)
             {
@@ -205,7 +233,11 @@ namespace Microsoft.Coyote.SystematicTesting
 
             this.NumContinuationTasks = numContinuationTasks;
             this.NumSpawnTasks = numSpawnTasks;
-            // F_TODO: find all references of this function and change everywhere the arguments
+            this.NumDelayTasks = NumDelayTasks;
+            this.NumOfAsyncStateMachineStart = NumOfAsyncStateMachineStart;
+            this.NumOfAsyncStateMachineStartMissed = NumOfAsyncStateMachineStartMissed;
+            this.NumOfMoveNext = NumOfMoveNext;
+            this.NumOfMoveNextMissed = NumOfMoveNextMissed;
         }
 
         /// <inheritdoc/>
@@ -270,6 +302,11 @@ namespace Microsoft.Coyote.SystematicTesting
                 this.InternalErrors.UnionWith(testReport.InternalErrors);
                 this.NumSpawnTasks += testReport.NumSpawnTasks;
                 this.NumContinuationTasks += testReport.NumContinuationTasks;
+                this.NumDelayTasks += testReport.NumDelayTasks;
+                this.NumOfAsyncStateMachineStart += testReport.NumOfAsyncStateMachineStart;
+                this.NumOfAsyncStateMachineStartMissed += testReport.NumOfAsyncStateMachineStartMissed;
+                this.NumOfMoveNext += testReport.NumOfMoveNext;
+                this.NumOfMoveNextMissed += testReport.NumOfMoveNextMissed;
             }
 
             return true;
@@ -394,6 +431,51 @@ namespace Microsoft.Coyote.SystematicTesting
             "{0} Number of new spawn tasks is.",
             prefix.Equals("...") ? "....." : prefix,
             this.NumSpawnTasks);
+            // }
+
+            // if (this.NumDelayTasks > 0)
+            // {
+            report.AppendLine();
+            report.AppendFormat(
+            "{0} Number of new delay tasks is.",
+            prefix.Equals("...") ? "....." : prefix,
+            this.NumDelayTasks);
+            // }
+
+            // if (this.NumOfAsyncStateMachineStart > 0)
+            // {
+            report.AppendLine();
+            report.AppendFormat(
+            "{0} Number of times Start method is called by AsyncStateMachines is.",
+            prefix.Equals("...") ? "....." : prefix,
+            this.NumOfAsyncStateMachineStart);
+            // }
+
+            // if (this.NumOfAsyncStateMachineStartMissed > 0)
+            // {
+            report.AppendLine();
+            report.AppendFormat(
+            "{0} Number of Start method calls by AsyncStateMachines in which correct owner operation was not set is.",
+            prefix.Equals("...") ? "....." : prefix,
+            this.NumOfAsyncStateMachineStartMissed);
+            // }
+
+            // if (this.NumOfMoveNext > 0)
+            // {
+            report.AppendLine();
+            report.AppendFormat(
+            "{0} Number of times MoveNext method is called by AsyncStateMachines is.",
+            prefix.Equals("...") ? "....." : prefix,
+            this.NumOfMoveNext);
+            // }
+
+            // if (this.NumOfMoveNextMissed > 0)
+            // {
+            report.AppendLine();
+            report.AppendFormat(
+            "{0} Number of times setting correct parent or priority on a MoveNext method call is missed is.",
+            prefix.Equals("...") ? "....." : prefix,
+            this.NumOfMoveNextMissed);
             // }
 
             return report.ToString();

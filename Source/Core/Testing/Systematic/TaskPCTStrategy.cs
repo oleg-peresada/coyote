@@ -498,7 +498,7 @@ namespace Microsoft.Coyote.Testing.Systematic
             }
 
             // FN_TODO: maybe later comment it to reduce log size.
-            this.DebugPrintOperationPriorityList();
+            // this.DebugPrintOperationPriorityList();
         }
 
         private void InsertAsyncOperationIntoOperationGroupOnMoveNext(AsyncOperation asyncOp)
@@ -575,9 +575,9 @@ namespace Microsoft.Coyote.Testing.Systematic
                 }
                 else
                 {
-                    // FN_DEBUG:
-                    // Specification.Assert(false, $"     ===========<IMP_TaskPCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] MoveNext can be called only by either a spaen or continuation task (not delay tasks and non-tasks).");
-                    Debug.WriteLine($"     ===========<IMP_TaskPCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] MoveNext can be called only by either a spaen or continuation task (not delay tasks and non-tasks).");
+                    // FN_DEBUG: big test cases were giving an error on this spec which is solved now by correctly setting the delay operation field in asyncoperation
+                    Specification.Assert(false, $"     ===========<IMP_TaskPCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] MoveNext can be called only by either a spaen or continuation task (not delay tasks and non-tasks).");
+                    // Debug.WriteLine($"     ===========<IMP_TaskPCTStrategy-ERROR> [InsertAsyncOperationIntoOperationGroup] MoveNext can be called only by either a spaen or continuation task (not delay tasks and non-tasks).");
                 }
 
                 this.InsertAsyncOperationIntoOperationGroupOnMoveNext(op);

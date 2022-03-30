@@ -406,8 +406,13 @@ namespace Microsoft.Coyote.SystematicTesting
             // Get and merge the test report.
             TestReport testReport = testingProcess.GetTestReport();
             // TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext (by spawn and continuation tasks) to the TestReport
-            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> numSpawnTasks: {testReport.NumSpawnTasks}");
-            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> numContinuationTasks: {testReport.NumContinuationTasks}");
+            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> numSpawnTasks: {testReport.NumSpawnTasks}: (Number of Spawn Tasks observed).");
+            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> numContinuationTasks: {testReport.NumContinuationTasks}: (Number of Continuation Tasks observed).");
+            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> : {testReport.NumDelayTasks}: (Number of Delay Tasks observed).");
+            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> : {testReport.NumOfAsyncStateMachineStart}: (Number of times Start method is called by AsyncStateMachines).");
+            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> : {testReport.NumOfAsyncStateMachineStartMissed}: (Number of Start method calls by AsyncStateMachines in which correct owner operation was not set).");
+            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> : {testReport.NumOfMoveNext}: (Number of times MoveNext method is called by AsyncStateMachines).");
+            Console.WriteLine($"        <TASKPCT_WORK_RUNTIME_LOG> : {testReport.NumOfMoveNextMissed}: (Number of times setting correct parent or priority on a MoveNext method call is missed).");
             if (testReport != null)
             {
                 this.MergeTestReport(testReport, 0);

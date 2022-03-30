@@ -828,7 +828,6 @@ namespace Microsoft.Coyote.SystematicTesting
         /// </summary>
         private void GatherTestingStatistics(CoyoteRuntime runtime)
         {
-            // TODO: add numSpawnTasks, numContinuationTasks, NumOfMoveNext (by spawn and continuation tasks) to the TestReport
             TestReport report = new TestReport(this.Configuration);
             runtime.PopulateTestReport(report);
             if (this.Configuration.ReportActivityCoverage)
