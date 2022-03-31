@@ -188,7 +188,7 @@ namespace Microsoft.Coyote.SystematicTesting
 
         /// <inheritdoc/>
         void ITestReport.SetSchedulingStatistics(bool isBugFound, string bugReport, int scheduledSteps,
-            bool isMaxScheduledStepsBoundReached, bool isScheduleFair, int numSpawnTasks, int numContinuationTasks, int NumDelayTasks, int NumOfAsyncStateMachineStart, int NumOfAsyncStateMachineStartMissed, int NumOfMoveNext, int NumOfMoveNextMissed)
+            bool isMaxScheduledStepsBoundReached, bool isScheduleFair, int numSpawnTasks, int numContinuationTasks, int numDelayTasks, int numOfAsyncStateMachineStart, int numOfAsyncStateMachineStartMissed, int numOfMoveNext, int numOfMoveNextMissed)
         {
             if (isBugFound)
             {
@@ -233,11 +233,11 @@ namespace Microsoft.Coyote.SystematicTesting
 
             this.NumContinuationTasks = numContinuationTasks;
             this.NumSpawnTasks = numSpawnTasks;
-            this.NumDelayTasks = NumDelayTasks;
-            this.NumOfAsyncStateMachineStart = NumOfAsyncStateMachineStart;
-            this.NumOfAsyncStateMachineStartMissed = NumOfAsyncStateMachineStartMissed;
-            this.NumOfMoveNext = NumOfMoveNext;
-            this.NumOfMoveNextMissed = NumOfMoveNextMissed;
+            this.NumDelayTasks = numDelayTasks;
+            this.NumOfAsyncStateMachineStart = numOfAsyncStateMachineStart;
+            this.NumOfAsyncStateMachineStartMissed = numOfAsyncStateMachineStartMissed;
+            this.NumOfMoveNext = numOfMoveNext;
+            this.NumOfMoveNextMissed = numOfMoveNextMissed;
         }
 
         /// <inheritdoc/>
